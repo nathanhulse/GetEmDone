@@ -35,6 +35,7 @@ final class HouseholdStore: ObservableObject {
     }
 
     var accessState: AccessState {
+        guard !chores.isEmpty else { return .locked }
         if chores.allSatisfy({ $0.state == .approved }) { return .unlocked(until: nil) }
         if chores.allSatisfy({ $0.state != .waiting }) { return .awaitingApproval }
         return .locked

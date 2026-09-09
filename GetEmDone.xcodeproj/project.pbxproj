@@ -17,6 +17,7 @@
 		AC6B7C455D926C708F188A04 /* GetEmDoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAC4F3D8DFCAF7C30B6FB33E /* GetEmDoneApp.swift */; };
 		B9E1C03EA4F49F085D0A6944 /* AppShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD35A974EAFAA3A37431CD5B /* AppShell.swift */; };
 		C8253EF5AFD30171BB4AD1EB /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = C848FC19A200CBA2A691154B /* Models.swift */; };
+		E00C3A5B0FEF01D66F379428 /* ChildStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE9E2109759E4B71DA1AC761 /* ChildStatusView.swift */; };
 		E92D061B276D95610AF0CCE7 /* Enforcement.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC413342666EC0C1FE06ECE5 /* Enforcement.swift */; };
 		F00A8DC825A4A760FBAE71A1 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C049529FD1E21616207AB88A /* TodayView.swift */; };
 /* End PBXBuildFile section */
@@ -45,6 +46,7 @@
 		D96B9358D3050EE409E6EFF1 /* HouseholdStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseholdStore.swift; sourceTree = "<group>"; };
 		DAC4F3D8DFCAF7C30B6FB33E /* GetEmDoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetEmDoneApp.swift; sourceTree = "<group>"; };
 		E09B168CBE88A857251A6453 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		FE9E2109759E4B71DA1AC761 /* ChildStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildStatusView.swift; sourceTree = "<group>"; };
 		FF7531DA1E2E1D273C04FAA3 /* GetEmDoneTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = GetEmDoneTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -79,6 +81,7 @@
 			isa = PBXGroup;
 			children = (
 				CD35A974EAFAA3A37431CD5B /* AppShell.swift */,
+				FE9E2109759E4B71DA1AC761 /* ChildStatusView.swift */,
 				D8BA996FBA4074BA6EE87195 /* DesignSystem.swift */,
 				0604422127F4475B2CDE195A /* DevicesView.swift */,
 				60CACC7681D15F3D6A85ECB7 /* HistoryView.swift */,
@@ -214,6 +217,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B9E1C03EA4F49F085D0A6944 /* AppShell.swift in Sources */,
+				E00C3A5B0FEF01D66F379428 /* ChildStatusView.swift in Sources */,
 				260A636ADFA7CFE9B80F96A4 /* DesignSystem.swift in Sources */,
 				6E78F523028D145F885D298E /* DevicesView.swift in Sources */,
 				E92D061B276D95610AF0CCE7 /* Enforcement.swift in Sources */,

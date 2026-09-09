@@ -9,6 +9,11 @@ final class HouseholdStoreTests: XCTestCase {
         XCTAssertEqual(store.progress, 0.5, accuracy: 0.001)
     }
 
+    func testEmptyRoutineDoesNotSilentlyUnlock() {
+        let store = makeStore(states: [])
+        XCTAssertEqual(store.accessState, .locked)
+    }
+
     func testSubmittedChoresAwaitApproval() {
         let store = makeStore(states: [.submitted, .submitted])
         XCTAssertEqual(store.accessState, .awaitingApproval)

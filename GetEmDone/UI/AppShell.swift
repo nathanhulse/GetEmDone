@@ -8,15 +8,23 @@ struct AppShell: View {
             NavigationStack { TodayView(store: store) }
                 .tabItem { Label("Today", systemImage: "sun.max.fill") }
 
-            NavigationStack { DevicesView(store: store) }
-                .tabItem { Label("Devices", systemImage: "wifi.router") }
+            if store.role == .parent {
+                NavigationStack { DevicesView(store: store) }
+                    .tabItem { Label("Access", systemImage: "checkmark.shield") }
+            } else {
+                NavigationStack { ChildStatusView(store: store) }
+                    .tabItem { Label("Status", systemImage: "lock.shield") }
+            }
 
             NavigationStack { HistoryView(store: store) }
                 .tabItem { Label("History", systemImage: "clock.arrow.circlepath") }
 
-            NavigationStack { SettingsView(store: store) }
-                .tabItem { Label("Settings", systemImage: "gearshape") }
+            if store.role == .parent {
+                NavigationStack { SettingsView(store: store) }
+                    .tabItem { Label("Settings", systemImage: "gearshape") }
+            }
         }
-        .tint(GEDTheme.accent)
+        .tint(GEDTheme.accent(for: store.role))
+        .animation(.snappy, value: store.role)
     }
 }

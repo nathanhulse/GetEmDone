@@ -8,21 +8,31 @@ struct TodayView: View {
         ScrollView {
             VStack(spacing: 18) {
                 header
+                roleSummary
                 accessCard
                 choresSection
                 if store.role == .parent { parentActions }
             }
             .padding()
         }
-        .background(GEDTheme.canvas)
+        .background {
+            LinearGradient(
+                colors: [GEDTheme.accent(for: store.role).opacity(0.10), GEDTheme.canvas, GEDTheme.canvas],
+                startPoint: .topLeading,
+                endPoint: .center
+            )
+            .ignoresSafeArea()
+        }
         .navigationTitle("Today")
         .toolbar {
+            if store.role == .parent {
             ToolbarItem(placement: .topBarLeading) {
                 Button("Add", systemImage: "plus") { sheet = .newChore }
-                    .opacity(store.role == .parent ? 1 : 0)
-                    .disabled(store.role != .parent)
             }
+            }
+#if DEBUG
             roleMenu
+#endif
         }
         .sheet(item: $sheet) { destination in
             switch destination {
@@ -37,6 +47,24 @@ struct TodayView: View {
         } message: {
             Text(store.errorMessage ?? "")
         }
+    }
+
+    private var roleSummary: some View {
+        HStack(spacing: 10) {
+            MetricTile(
+                value: "\(store.chores.filter { $0.state == .approved }.count)",
+                label: store.role == .parent ? "Approved" : "All done",
+                symbol: "checkmark.seal.fill",
+                tint: GEDTheme.mint
+            )
+            MetricTile(
+                value: "\(store.chores.filter { $0.state == .submitted }.count)",
+                label: store.role == .parent ? "To review" : "Waiting on parent",
+                symbol: "tray.full.fill",
+                tint: GEDTheme.warm
+            )
+        }
+        .accessibilityElement(children: .contain)
     }
 
     private var header: some View {
@@ -71,7 +99,15 @@ struct TodayView: View {
                 .tint(accessTint)
         }
         .padding(18)
-        .background(.background, in: RoundedRectangle(cornerRadius: 22))
+        .background(.background, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(alignment: .topTrailing) {
+            if store.role == .child, case .locked = store.accessState {
+                Text(nextStep)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(GEDTheme.childAccent)
+                    .padding(12)
+            }
+        }
     }
 
     private var choresSection: some View {
@@ -131,6 +167,11 @@ struct TodayView: View {
         case .awaitingApproval: "A parent can review the submitted items now."
         case .unlocked: "Apps, websites, and the Family Room TV are available."
         }
+    }
+
+    private var nextStep: String {
+        let remaining = store.chores.filter { $0.state == .waiting }.count
+        return remaining == 1 ? "One left!" : "\(remaining) left"
     }
 }
 
@@ -215,7 +256,7 @@ private struct ChoreRow: View {
         }
         .padding(16)
         .background(.background, in: RoundedRectangle(cornerRadius: 18))
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder private var action: some View {
