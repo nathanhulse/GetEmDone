@@ -52,6 +52,8 @@ This checklist is a release gate, not a roadmap. Every item must have an owner a
 - [ ] Cross-household authorization/IDOR suite and role tests pass.
 - [ ] Router credentials, push tokens, signing keys, recovery codes, and evidence URLs are absent from logs and analytics.
 - [ ] Secret scan, dependency scan, static analysis, upload validation, and transport-security tests pass.
+- [ ] Backend typecheck, coverage thresholds, production dependency audit, and pull-request dependency review pass.
+- [ ] Every Screen Time extension builds independently and its extension point, Family Controls entitlement, and shared App Group are validated by CI.
 - [ ] Independent penetration test is complete for broad public launch; critical/high findings are closed or formally accepted with mitigation.
 - [ ] Incident response, breach escalation, child-safety escalation, deletion request, and account recovery runbooks have been rehearsed.
 

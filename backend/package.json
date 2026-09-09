@@ -6,7 +6,9 @@
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test test/**/*.test.ts"
+    "test": "node --import tsx --test test/**/*.test.ts",
+    "test:coverage": "node --import tsx --experimental-test-coverage --test-coverage-lines=80 --test-coverage-functions=80 --test-coverage-branches=70 --test test/**/*.test.ts",
+    "audit:production": "npm audit --omit=dev --audit-level=high"
   },
   "dependencies": {
     "fastify": "5.12.3",

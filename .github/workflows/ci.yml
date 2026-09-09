@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   backend:
-    name: Backend typecheck and test
+    name: Backend quality gate
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -35,8 +35,25 @@ jobs:
         run: npm ci
       - name: Typecheck
         run: npm run typecheck
-      - name: Test
-        run: npm test
+      - name: Test with coverage thresholds
+        run: npm run test:coverage
+      - name: Audit production dependencies
+        run: npm run audit:production
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Reject newly introduced vulnerable dependencies
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
 
   build-and-test:
     name: Build and unit test
@@ -55,6 +72,9 @@ jobs:
 
       - name: Generate Xcode project
         run: xcodegen generate
+
+      - name: Validate extension targets and capabilities
+        run: bash scripts/validate-ios-project.sh .DerivedDataExtensionValidation
 
       - name: Create CI simulator
         run: |
