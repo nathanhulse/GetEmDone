@@ -9,6 +9,7 @@ struct EnforcementSnapshot: Equatable {
 protocol EnforcementService: Sendable {
     func applyLockedPolicy() async throws -> EnforcementSnapshot
     func applyUnlockedPolicy(until: Date?) async throws -> EnforcementSnapshot
+    func applyPolicy(_ desired: EnforcementSnapshot) async throws -> EnforcementSnapshot
 }
 
 actor DemoEnforcementService: EnforcementService {
@@ -27,5 +28,9 @@ actor DemoEnforcementService: EnforcementService {
         snapshot = .init(phoneAppsShielded: false, webDistractionsFiltered: false, appleTVPaused: false)
         return snapshot
     }
-}
 
+    func applyPolicy(_ desired: EnforcementSnapshot) async throws -> EnforcementSnapshot {
+        snapshot = desired
+        return snapshot
+    }
+}

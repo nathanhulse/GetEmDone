@@ -6,8 +6,6 @@ struct EvidenceCheckInView: View {
     let chore: Chore
     @ObservedObject var store: HouseholdStore
     @State private var photoItem: PhotosPickerItem?
-    @State private var timerStartedAt: Date?
-    @State private var capturedSeconds = 0
 
     private var currentChore: Chore {
         store.chores.first(where: { $0.id == chore.id }) ?? chore
@@ -73,14 +71,9 @@ struct EvidenceCheckInView: View {
                 }
                 Text("Goal: \(max(1, chore.minimumTimerSeconds / 60)) minute")
                     .font(.subheadline).foregroundStyle(.secondary)
-                Button(timerStartedAt == nil ? "Start practice" : "Finish practice") {
-                    if let start = timerStartedAt {
-                        capturedSeconds = max(1, Int(Date.now.timeIntervalSince(start)))
-                        store.recordPractice(seconds: capturedSeconds, for: currentChore)
-                        timerStartedAt = nil
-                    } else {
-                        timerStartedAt = .now
-                    }
+                Button(currentChore.timerStartedAt == nil ? "Start practice" : "Finish practice") {
+                    if currentChore.timerStartedAt == nil { store.startPractice(for: currentChore) }
+                    else { store.stopPractice(for: currentChore) }
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(GEDTheme.childAccent)
@@ -89,7 +82,7 @@ struct EvidenceCheckInView: View {
     }
 
     private func timerText(at date: Date) -> String {
-        let live = timerStartedAt.map { max(0, Int(date.timeIntervalSince($0))) } ?? capturedSeconds
+        let live = store.elapsedPractice(for: currentChore, at: date)
         return String(format: "%02d:%02d", live / 60, live % 60)
     }
 }

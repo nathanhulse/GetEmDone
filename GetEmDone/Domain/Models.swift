@@ -64,8 +64,9 @@ struct Chore: Identifiable, Hashable, Codable, Sendable {
     var evidenceProgress: EvidenceProgress
     var minimumTimerSeconds: Int
     var parentNote: String?
+    var timerStartedAt: Date?
 
-    init(id: UUID = UUID(), title: String, detail: String, evidence: ChoreEvidence, state: ChoreState = .waiting, activeWeekdays: Set<Int> = Set(1...7), dueMinutes: Int? = nil, isArchived: Bool = false, evidenceProgress: EvidenceProgress = .none, minimumTimerSeconds: Int = 60, parentNote: String? = nil) {
+    init(id: UUID = UUID(), title: String, detail: String, evidence: ChoreEvidence, state: ChoreState = .waiting, activeWeekdays: Set<Int> = Set(1...7), dueMinutes: Int? = nil, isArchived: Bool = false, evidenceProgress: EvidenceProgress = .none, minimumTimerSeconds: Int = 60, parentNote: String? = nil, timerStartedAt: Date? = nil) {
         self.id = id
         self.title = title
         self.detail = detail
@@ -77,6 +78,7 @@ struct Chore: Identifiable, Hashable, Codable, Sendable {
         self.evidenceProgress = evidenceProgress
         self.minimumTimerSeconds = minimumTimerSeconds
         self.parentNote = parentNote
+        self.timerStartedAt = timerStartedAt
     }
 
 
@@ -92,7 +94,7 @@ struct Chore: Identifiable, Hashable, Codable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case id, title, detail, evidence, state, activeWeekdays, dueMinutes, isArchived
-        case evidenceProgress, minimumTimerSeconds, parentNote
+        case evidenceProgress, minimumTimerSeconds, parentNote, timerStartedAt
     }
 
     init(from decoder: Decoder) throws {
@@ -108,6 +110,7 @@ struct Chore: Identifiable, Hashable, Codable, Sendable {
         evidenceProgress = try values.decodeIfPresent(EvidenceProgress.self, forKey: .evidenceProgress) ?? .none
         minimumTimerSeconds = try values.decodeIfPresent(Int.self, forKey: .minimumTimerSeconds) ?? 60
         parentNote = try values.decodeIfPresent(String.self, forKey: .parentNote)
+        timerStartedAt = try values.decodeIfPresent(Date.self, forKey: .timerStartedAt)
     }
 
     var recurrenceLabel: String {
@@ -118,13 +121,37 @@ struct Chore: Identifiable, Hashable, Codable, Sendable {
     }
 }
 
-enum OverrideTarget: String, CaseIterable, Identifiable, Sendable {
+enum OverrideTarget: String, CaseIterable, Identifiable, Codable, Sendable {
     case phone
     case appleTV
     case both
 
     var id: Self { self }
     var title: String { self == .appleTV ? "Apple TV" : rawValue.capitalized }
+}
+
+struct TemporaryOverride: Identifiable, Codable, Hashable, Sendable {
+    let id: UUID
+    let target: OverrideTarget
+    let startsAt: Date
+    let expiresAt: Date
+
+    init(id: UUID = UUID(), target: OverrideTarget, startsAt: Date, expiresAt: Date) {
+        self.id = id
+        self.target = target
+        self.startsAt = startsAt
+        self.expiresAt = expiresAt
+    }
+
+    func isActive(at date: Date) -> Bool { startsAt <= date && date < expiresAt }
+}
+
+protocol DateProviding: Sendable {
+    var now: Date { get }
+}
+
+struct SystemDateProvider: DateProviding {
+    var now: Date { Date() }
 }
 
 enum OnboardingStep: Int, CaseIterable, Sendable {
@@ -211,9 +238,31 @@ struct ActivityEvent: Identifiable, Hashable, Codable, Sendable {
 }
 
 struct HouseholdSnapshot: Codable, Sendable {
-    var schemaVersion: Int = 1
+    var schemaVersion: Int
     var childName: String
     var chores: [Chore]
     var devices: [ManagedDevice]
     var history: [ActivityEvent]
+    var temporaryOverrides: [TemporaryOverride]
+
+    init(schemaVersion: Int = 2, childName: String, chores: [Chore], devices: [ManagedDevice], history: [ActivityEvent], temporaryOverrides: [TemporaryOverride] = []) {
+        self.schemaVersion = schemaVersion
+        self.childName = childName
+        self.chores = chores
+        self.devices = devices
+        self.history = history
+        self.temporaryOverrides = temporaryOverrides
+    }
+
+    private enum CodingKeys: String, CodingKey { case schemaVersion, childName, chores, devices, history, temporaryOverrides }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        schemaVersion = try values.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 0
+        childName = try values.decode(String.self, forKey: .childName)
+        chores = try values.decodeIfPresent([Chore].self, forKey: .chores) ?? []
+        devices = try values.decodeIfPresent([ManagedDevice].self, forKey: .devices) ?? []
+        history = try values.decodeIfPresent([ActivityEvent].self, forKey: .history) ?? []
+        temporaryOverrides = try values.decodeIfPresent([TemporaryOverride].self, forKey: .temporaryOverrides) ?? []
+    }
 }

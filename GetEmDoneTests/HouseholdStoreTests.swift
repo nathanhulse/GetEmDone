@@ -3,6 +3,9 @@ import XCTest
 
 @MainActor
 final class HouseholdStoreTests: XCTestCase {
+    private struct FixedDateProvider: DateProviding {
+        var now: Date
+    }
     func testAccessStartsLockedWhenAnyChoreIsWaiting() {
         let store = makeStore(states: [.approved, .waiting])
         XCTAssertEqual(store.accessState, .locked)
@@ -143,6 +146,58 @@ final class HouseholdStoreTests: XCTestCase {
         XCTAssertFalse(chore.isArchived)
         XCTAssertEqual(chore.minimumTimerSeconds, 60)
         XCTAssertEqual(chore.evidenceProgress, .none)
+        XCTAssertNil(chore.timerStartedAt)
+    }
+
+    func testPracticeTimerSurvivesSnapshotRoundTrip() async {
+        let persistence = MemoryHouseholdPersistence()
+        let start = Date(timeIntervalSince1970: 1_000)
+        let chore = Chore(title: "Piano", detail: "", evidence: .timer)
+        let first = HouseholdStore(role: .child, childName: "Test", chores: [chore], devices: [], persistence: persistence, dateProvider: FixedDateProvider(now: start))
+        first.startPractice(for: chore)
+        await first.persist()
+        let restored = HouseholdStore(role: .child, childName: "Test", chores: [], devices: [], persistence: persistence, dateProvider: FixedDateProvider(now: start.addingTimeInterval(90)))
+        await restored.load()
+        XCTAssertEqual(restored.elapsedPractice(for: restored.chores[0]), 90)
+    }
+
+    func testTemporaryOverrideExpiresAndRelocks() async {
+        let start = Date(timeIntervalSince1970: 2_000)
+        let persistence = MemoryHouseholdPersistence()
+        let active = HouseholdStore(role: .parent, childName: "Test", chores: [Chore(title: "Bed", detail: "", evidence: .checkIn)], devices: [], persistence: persistence, dateProvider: FixedDateProvider(now: start))
+        active.applyOverride(target: .appleTV, duration: 60)
+        await active.reconcilePolicy()
+        XCTAssertFalse(active.enforcement.appleTVPaused)
+        await active.persist()
+        let expired = HouseholdStore(role: .parent, childName: "Test", chores: [], devices: [], persistence: persistence, dateProvider: FixedDateProvider(now: start.addingTimeInterval(61)))
+        await expired.load()
+        XCTAssertTrue(expired.enforcement.appleTVPaused)
+        XCTAssertTrue(expired.temporaryOverrides.isEmpty)
+    }
+
+    func testDuplicateAndIllegalReviewCommandsAreNoOps() {
+        let submitted = Chore(title: "Bed", detail: "", evidence: .checkIn, state: .submitted)
+        let store = HouseholdStore(role: .parent, childName: "Test", chores: [submitted], devices: [])
+        store.approve(submitted)
+        let eventCount = store.history.count
+        store.approve(submitted)
+        store.requestRedo(submitted)
+        XCTAssertEqual(store.history.count, eventCount)
+        XCTAssertEqual(store.chores[0].state, .approved)
+    }
+
+    func testDuplicateTimerStartAndStopAreNoOps() {
+        let start = Date(timeIntervalSince1970: 3_000)
+        let chore = Chore(title: "Piano", detail: "", evidence: .timer)
+        let store = HouseholdStore(role: .child, childName: "Test", chores: [chore], devices: [], dateProvider: FixedDateProvider(now: start))
+        store.startPractice(for: chore)
+        let firstStart = store.chores[0].timerStartedAt
+        store.startPractice(for: chore)
+        XCTAssertEqual(store.chores[0].timerStartedAt, firstStart)
+        store.stopPractice(for: chore)
+        let progress = store.chores[0].evidenceProgress
+        store.stopPractice(for: chore)
+        XCTAssertEqual(store.chores[0].evidenceProgress, progress)
     }
 
     func testSimulatorScreenTimeControllerNeverClaimsRealProtection() async {

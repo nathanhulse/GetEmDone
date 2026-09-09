@@ -14,10 +14,12 @@ final class HouseholdStore: ObservableObject {
     @Published var protectionHealth: ProtectionHealth = .unknown
     @Published var onboardingStep: OnboardingStep = .welcome
     @Published var hasCompletedOnboarding: Bool
+    @Published var temporaryOverrides: [TemporaryOverride]
 
     private let enforcementService: any EnforcementService
     private let persistence: any HouseholdPersistence
     private var persistenceRevision: UInt64 = 0
+    private let dateProvider: any DateProviding
 
     init(
         role: HouseholdRole,
@@ -26,7 +28,8 @@ final class HouseholdStore: ObservableObject {
         devices: [ManagedDevice],
         history: [ActivityEvent] = [],
         enforcementService: any EnforcementService = DemoEnforcementService(),
-        persistence: any HouseholdPersistence = MemoryHouseholdPersistence()
+        persistence: any HouseholdPersistence = MemoryHouseholdPersistence(),
+        dateProvider: any DateProviding = SystemDateProvider()
     ) {
         self.role = role
         self.childName = childName
@@ -36,6 +39,8 @@ final class HouseholdStore: ObservableObject {
         self.enforcementService = enforcementService
         self.persistence = persistence
         self.hasCompletedOnboarding = role == .parent && !chores.isEmpty
+        self.temporaryOverrides = []
+        self.dateProvider = dateProvider
         self.enforcement = .init(phoneAppsShielded: true, webDistractionsFiltered: true, appleTVPaused: true)
     }
 
@@ -61,25 +66,67 @@ final class HouseholdStore: ObservableObject {
     }
 
     func attachPhoto(to chore: Chore) {
+        guard role == .child,
+              let current = chores.first(where: { $0.id == chore.id }),
+              current.state == .waiting,
+              current.evidence == .photo,
+              current.evidenceProgress != .photoReady else { return }
         update(chore.id) { $0.evidenceProgress = .photoReady }
         persistSoon()
     }
 
     func recordPractice(seconds: Int, for chore: Chore) {
-        guard seconds > 0 else { return }
+        guard role == .child, seconds > 0,
+              let current = chores.first(where: { $0.id == chore.id }),
+              current.state == .waiting,
+              current.evidence == .timer else { return }
         update(chore.id) { $0.evidenceProgress = .timer(seconds: seconds) }
         persistSoon()
     }
 
+    func startPractice(for chore: Chore) {
+        guard role == .child,
+              let current = chores.first(where: { $0.id == chore.id }),
+              current.state == .waiting,
+              current.evidence == .timer,
+              current.timerStartedAt == nil else { return }
+        update(chore.id) { current in
+            current.timerStartedAt = dateProvider.now
+        }
+        persistSoon()
+    }
+
+    func stopPractice(for chore: Chore) {
+        guard role == .child, let current = chores.first(where: { $0.id == chore.id }), let started = current.timerStartedAt else { return }
+        let elapsed = max(0, Int(dateProvider.now.timeIntervalSince(started)))
+        update(chore.id) {
+            let prior: Int
+            if case .timer(let seconds) = $0.evidenceProgress { prior = seconds } else { prior = 0 }
+            $0.evidenceProgress = .timer(seconds: prior + elapsed)
+            $0.timerStartedAt = nil
+        }
+        persistSoon()
+    }
+
+    func elapsedPractice(for chore: Chore, at date: Date? = nil) -> Int {
+        guard let current = chores.first(where: { $0.id == chore.id }) else { return 0 }
+        let accumulated: Int
+        if case .timer(let seconds) = current.evidenceProgress { accumulated = seconds } else { accumulated = 0 }
+        guard let started = current.timerStartedAt else { return accumulated }
+        return accumulated + max(0, Int((date ?? dateProvider.now).timeIntervalSince(started)))
+    }
+
     func approve(_ chore: Chore) {
-        guard role == .parent else { return }
+        guard role == .parent,
+              chores.first(where: { $0.id == chore.id })?.state == .submitted else { return }
         update(chore.id) { $0.state = .approved }
         record(.approved, "\(chore.title) was approved")
         persistSoon()
     }
 
     func requestRedo(_ chore: Chore, note: String? = nil) {
-        guard role == .parent else { return }
+        guard role == .parent,
+              chores.first(where: { $0.id == chore.id })?.state == .submitted else { return }
         update(chore.id) {
             $0.state = .waiting
             $0.parentNote = note?.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -107,26 +154,27 @@ final class HouseholdStore: ObservableObject {
         guard let index = chores.firstIndex(where: { $0.id == chore.id }) else { return }
         var cleaned = chore
         cleaned.title = chore.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleaned.title.isEmpty, !cleaned.activeWeekdays.isEmpty else { return }
+        guard !cleaned.title.isEmpty, !cleaned.activeWeekdays.isEmpty, cleaned != chores[index] else { return }
         chores[index] = cleaned
         record(.choreEdited, "\(cleaned.title) was updated")
         persistSoon()
     }
 
     func setArchived(_ archived: Bool, chore: Chore) {
-        guard let index = chores.firstIndex(where: { $0.id == chore.id }) else { return }
+        guard let index = chores.firstIndex(where: { $0.id == chore.id }), chores[index].isArchived != archived else { return }
         chores[index].isArchived = archived
         record(.choreEdited, "\(chore.title) was \(archived ? "archived" : "restored")")
         persistSoon()
     }
 
-    func activeChores(on date: Date = .now, calendar: Calendar = .current) -> [Chore] {
-        let weekday = calendar.component(.weekday, from: date)
+    func activeChores(on date: Date? = nil, calendar: Calendar = .current) -> [Chore] {
+        let weekday = calendar.component(.weekday, from: date ?? dateProvider.now)
         return chores.filter { !$0.isArchived && $0.activeWeekdays.contains(weekday) }
     }
 
     func approveSubmitted() async {
         guard role == .parent else { return }
+        guard chores.contains(where: { $0.state == .submitted }) else { return }
         for index in chores.indices where chores[index].state == .submitted {
             record(.approved, "\(chores[index].title) was approved")
             chores[index].state = .approved
@@ -143,19 +191,14 @@ final class HouseholdStore: ObservableObject {
         await reconcilePolicy()
     }
 
-    func applyOverride(target: OverrideTarget) {
+    func applyOverride(target: OverrideTarget, duration: TimeInterval = 30 * 60) {
         guard role == .parent else { return }
-        switch target {
-        case .phone:
-            enforcement.phoneAppsShielded = false
-            enforcement.webDistractionsFiltered = false
-        case .appleTV:
-            enforcement.appleTVPaused = false
-        case .both:
-            enforcement = .init(phoneAppsShielded: false, webDistractionsFiltered: false, appleTVPaused: false)
-        }
+        let now = dateProvider.now
+        temporaryOverrides.append(TemporaryOverride(target: target, startsAt: now, expiresAt: now.addingTimeInterval(max(1, duration))))
+        enforcement = desiredPolicy(at: now)
         record(.override, "Parent temporarily unlocked \(target.title)")
         persistSoon()
+        Task { await reconcilePolicy() }
     }
 
     func resetDay() async {
@@ -175,6 +218,7 @@ final class HouseholdStore: ObservableObject {
             chores = snapshot.chores
             devices = snapshot.devices
             history = snapshot.history
+            temporaryOverrides = snapshot.temporaryOverrides
             await reconcilePolicy()
         } catch {
             errorMessage = "Saved routines couldn’t be loaded. Nothing was restricted automatically."
@@ -197,11 +241,9 @@ final class HouseholdStore: ObservableObject {
         protectionHealth = .applying
         defer { isApplyingPolicy = false }
         do {
-            if case .unlocked = accessState {
-                enforcement = try await enforcementService.applyUnlockedPolicy(until: nil)
-            } else {
-                enforcement = try await enforcementService.applyLockedPolicy()
-            }
+            let now = dateProvider.now
+            temporaryOverrides.removeAll { $0.expiresAt <= now }
+            enforcement = try await enforcementService.applyPolicy(desiredPolicy(at: now))
             protectionHealth = .healthy
         } catch {
             errorMessage = "We couldn’t update every device. Essential apps remain available; try again."
@@ -227,7 +269,25 @@ final class HouseholdStore: ObservableObject {
     }
 
     private var snapshot: HouseholdSnapshot {
-        HouseholdSnapshot(childName: childName, chores: chores, devices: devices, history: Array(history.prefix(100)))
+        HouseholdSnapshot(childName: childName, chores: chores, devices: devices, history: Array(history.prefix(100)), temporaryOverrides: temporaryOverrides)
+    }
+
+    private func desiredPolicy(at date: Date) -> EnforcementSnapshot {
+        let baseLocked: Bool
+        if case .unlocked = accessState { baseLocked = false } else { baseLocked = true }
+        var desired = EnforcementSnapshot(phoneAppsShielded: baseLocked, webDistractionsFiltered: baseLocked, appleTVPaused: baseLocked)
+        for grant in temporaryOverrides where grant.isActive(at: date) {
+            switch grant.target {
+            case .phone:
+                desired.phoneAppsShielded = false
+                desired.webDistractionsFiltered = false
+            case .appleTV:
+                desired.appleTVPaused = false
+            case .both:
+                desired = .init(phoneAppsShielded: false, webDistractionsFiltered: false, appleTVPaused: false)
+            }
+        }
+        return desired
     }
 
     private func record(_ kind: ActivityEvent.Kind, _ message: String) {
