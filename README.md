@@ -14,3 +14,4 @@ xcodebuild -project GetEmDone.xcodeproj -scheme GetEmDone \
 
 See [`docs/`](docs/) for the product contract, architecture, test plan, and staged release plan.
 
+GitHub Actions runs the unsigned simulator build and unit tests on every pull request and push. TestFlight delivery is separately protected and intentionally remains disabled until Apple signing, App Store Connect, and Family Controls entitlement prerequisites are configured. See [`docs/CI_CD.md`](docs/CI_CD.md).

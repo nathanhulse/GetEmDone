@@ -1,0 +1,29 @@
+name: TestFlight Delivery
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_notes:
+        description: Internal TestFlight release notes
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  delivery-readiness:
+    name: Validate delivery configuration
+    runs-on: macos-15
+    environment: testflight
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Explain gated delivery
+        run: |
+          test -n "${{ inputs.release_notes }}"
+          echo "TestFlight upload remains gated until the Apple team, App Store Connect app record, Family Controls entitlement, signing certificates, and API key are configured."
+
