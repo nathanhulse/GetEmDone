@@ -63,8 +63,9 @@ struct Chore: Identifiable, Hashable, Codable, Sendable {
     var isArchived: Bool
     var evidenceProgress: EvidenceProgress
     var minimumTimerSeconds: Int
+    var parentNote: String?
 
-    init(id: UUID = UUID(), title: String, detail: String, evidence: ChoreEvidence, state: ChoreState = .waiting, activeWeekdays: Set<Int> = Set(1...7), dueMinutes: Int? = nil, isArchived: Bool = false, evidenceProgress: EvidenceProgress = .none, minimumTimerSeconds: Int = 60) {
+    init(id: UUID = UUID(), title: String, detail: String, evidence: ChoreEvidence, state: ChoreState = .waiting, activeWeekdays: Set<Int> = Set(1...7), dueMinutes: Int? = nil, isArchived: Bool = false, evidenceProgress: EvidenceProgress = .none, minimumTimerSeconds: Int = 60, parentNote: String? = nil) {
         self.id = id
         self.title = title
         self.detail = detail
@@ -75,6 +76,7 @@ struct Chore: Identifiable, Hashable, Codable, Sendable {
         self.isArchived = isArchived
         self.evidenceProgress = evidenceProgress
         self.minimumTimerSeconds = minimumTimerSeconds
+        self.parentNote = parentNote
     }
 
 
@@ -94,6 +96,15 @@ struct Chore: Identifiable, Hashable, Codable, Sendable {
         if activeWeekdays == [1, 7] { return "Weekends" }
         return "\(activeWeekdays.count) days a week"
     }
+}
+
+enum OverrideTarget: String, CaseIterable, Identifiable, Sendable {
+    case phone
+    case appleTV
+    case both
+
+    var id: Self { self }
+    var title: String { self == .appleTV ? "Apple TV" : rawValue.capitalized }
 }
 
 enum AccessState: Equatable {

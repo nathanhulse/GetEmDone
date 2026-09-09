@@ -9,6 +9,10 @@ struct AppShell: View {
                 .tabItem { Label("Today", systemImage: "sun.max.fill") }
 
             if store.role == .parent {
+                NavigationStack { ReviewQueueView(store: store) }
+                    .tabItem { Label("Review", systemImage: "tray.full") }
+                    .badge(store.chores.filter { $0.state == .submitted }.count)
+
                 NavigationStack { RoutineView(store: store) }
                     .tabItem { Label("Routine", systemImage: "checklist") }
 
@@ -19,8 +23,10 @@ struct AppShell: View {
                     .tabItem { Label("Status", systemImage: "lock.shield") }
             }
 
-            NavigationStack { HistoryView(store: store) }
-                .tabItem { Label("History", systemImage: "clock.arrow.circlepath") }
+            if store.role == .child {
+                NavigationStack { HistoryView(store: store) }
+                    .tabItem { Label("History", systemImage: "clock.arrow.circlepath") }
+            }
 
         }
         .tint(GEDTheme.accent(for: store.role))

@@ -48,6 +48,7 @@ final class HouseholdStore: ObservableObject {
     var canApproveAll: Bool { todaysChores.contains { $0.state == .submitted } }
 
     func submit(_ chore: Chore) {
+        guard role == .child else { return }
         guard let current = chores.first(where: { $0.id == chore.id }), current.state == .waiting, current.canSubmit else { return }
         update(chore.id) { $0.state = .submitted }
         record(.submitted, "\(chore.title) was submitted")
@@ -66,13 +67,18 @@ final class HouseholdStore: ObservableObject {
     }
 
     func approve(_ chore: Chore) {
+        guard role == .parent else { return }
         update(chore.id) { $0.state = .approved }
         record(.approved, "\(chore.title) was approved")
         persistSoon()
     }
 
-    func requestRedo(_ chore: Chore) {
-        update(chore.id) { $0.state = .waiting }
+    func requestRedo(_ chore: Chore, note: String? = nil) {
+        guard role == .parent else { return }
+        update(chore.id) {
+            $0.state = .waiting
+            $0.parentNote = note?.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
         record(.redoRequested, "\(chore.title) needs another try")
         persistSoon()
     }
@@ -115,6 +121,7 @@ final class HouseholdStore: ObservableObject {
     }
 
     func approveSubmitted() async {
+        guard role == .parent else { return }
         for index in chores.indices where chores[index].state == .submitted {
             record(.approved, "\(chores[index].title) was approved")
             chores[index].state = .approved
@@ -124,10 +131,26 @@ final class HouseholdStore: ObservableObject {
     }
 
     func unlockForToday() async {
+        guard role == .parent else { return }
         for index in chores.indices { chores[index].state = .approved }
         record(.override, "Parent unlocked entertainment for today")
         await persist()
         await reconcilePolicy()
+    }
+
+    func applyOverride(target: OverrideTarget) {
+        guard role == .parent else { return }
+        switch target {
+        case .phone:
+            enforcement.phoneAppsShielded = false
+            enforcement.webDistractionsFiltered = false
+        case .appleTV:
+            enforcement.appleTVPaused = false
+        case .both:
+            enforcement = .init(phoneAppsShielded: false, webDistractionsFiltered: false, appleTVPaused: false)
+        }
+        record(.override, "Parent temporarily unlocked \(target.title)")
+        persistSoon()
     }
 
     func resetDay() async {

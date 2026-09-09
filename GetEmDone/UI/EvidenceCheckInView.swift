@@ -49,7 +49,7 @@ struct EvidenceCheckInView: View {
                 Text("Add a quick photo").font(.headline)
                 Text("Your parent sees it only to review this responsibility.").font(.subheadline).foregroundStyle(.secondary)
                 PhotosPicker(selection: $photoItem, matching: .images) {
-                    Label(currentChore.canSubmit ? "Choose a different photo" : "Choose photo", systemImage: "photo.badge.plus")
+                    Label("Choose photo", systemImage: "photo.badge.plus")
                         .frame(maxWidth: .infinity).padding(12)
                 }
                 .buttonStyle(.bordered)

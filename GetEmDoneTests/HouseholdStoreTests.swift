@@ -73,9 +73,35 @@ final class HouseholdStoreTests: XCTestCase {
         for _ in 0..<120 {
             await store.approveSubmitted()
             await store.resetDay()
+            store.role = .child
             store.submit(store.chores[0])
+            store.role = .parent
         }
         XCTAssertEqual(store.history.count, 100)
+    }
+
+    func testChildCannotApproveOrOverride() {
+        let store = HouseholdStore(role: .child, childName: "Test", chores: [Chore(title: "Done", detail: "", evidence: .checkIn, state: .submitted)], devices: [])
+        store.approve(store.chores[0])
+        store.applyOverride(target: .both)
+        XCTAssertEqual(store.chores[0].state, .submitted)
+        XCTAssertTrue(store.enforcement.phoneAppsShielded)
+        XCTAssertTrue(store.enforcement.appleTVPaused)
+    }
+
+    func testAppleTVOverrideDoesNotUnlockPhone() {
+        let store = makeStore(states: [.waiting])
+        store.applyOverride(target: .appleTV)
+        XCTAssertFalse(store.enforcement.appleTVPaused)
+        XCTAssertTrue(store.enforcement.phoneAppsShielded)
+        XCTAssertEqual(store.accessState, .locked)
+    }
+
+    func testRedoStoresParentNote() {
+        let store = makeStore(states: [.submitted])
+        store.requestRedo(store.chores[0], note: "Please straighten the blanket")
+        XCTAssertEqual(store.chores[0].state, .waiting)
+        XCTAssertEqual(store.chores[0].parentNote, "Please straighten the blanket")
     }
 
     func testWeekdayScheduleSelectsOnlyActiveChores() {
