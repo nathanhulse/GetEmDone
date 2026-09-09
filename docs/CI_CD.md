@@ -2,7 +2,7 @@
 
 ## Current automation
 
-`iOS CI` runs on every pull request and push to `main`, and can be started manually. It regenerates the Xcode project, builds the app without signing, runs the unit tests on an iOS Simulator, and retains the `.xcresult` bundle for 14 days.
+`iOS CI` runs on every pull request and push to `main`, and can be started manually. It pins Xcode 26.3, creates an iOS 26.2 simulator, regenerates the Xcode project, builds the app without signing, runs the unit tests, and retains the `.xcresult` bundle for 14 days. The versions are explicit so a hosted-runner default change cannot silently produce a non-submittable archive.
 
 CI has read-only repository permissions. It receives no Apple signing material, child data, router credentials, or production secrets.
 
@@ -35,4 +35,3 @@ Once those exist, the job will archive, export, validate, upload to TestFlight, 
 4. Backend contract, migration, security, and dependency tests when the service exists.
 5. Signed archive and TestFlight upload after Apple prerequisites pass.
 6. Scheduled compatibility builds against the current and next Xcode/iOS releases.
-

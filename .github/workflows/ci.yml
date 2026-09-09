@@ -24,11 +24,21 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
+      - name: Select submission-compatible Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
+
       - name: Install XcodeGen
         run: brew install xcodegen
 
       - name: Generate Xcode project
         run: xcodegen generate
+
+      - name: Create CI simulator
+        run: |
+          xcrun simctl create \
+            'GetEmDone CI' \
+            'iPhone 17 Pro' \
+            'com.apple.CoreSimulator.SimRuntime.iOS-26-2'
 
       - name: Build and test
         run: |
@@ -36,7 +46,7 @@ jobs:
           xcodebuild \
             -project GetEmDone.xcodeproj \
             -scheme GetEmDone \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            -destination 'platform=iOS Simulator,name=GetEmDone CI,OS=26.2' \
             -derivedDataPath .DerivedData \
             -resultBundlePath TestResults/GetEmDone.xcresult \
             CODE_SIGNING_ALLOWED=NO \
@@ -50,4 +60,3 @@ jobs:
           path: TestResults/GetEmDone.xcresult
           if-no-files-found: warn
           retention-days: 14
-

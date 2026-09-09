@@ -22,8 +22,10 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
+      - name: Select submission-compatible Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
+
       - name: Explain gated delivery
         run: |
           test -n "${{ inputs.release_notes }}"
           echo "TestFlight upload remains gated until the Apple team, App Store Connect app record, Family Controls entitlement, signing certificates, and API key are configured."
-
