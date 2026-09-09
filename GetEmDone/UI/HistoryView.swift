@@ -39,6 +39,7 @@ struct HistoryView: View {
         case .dailyReset: "sunrise.fill"
         case .choreCreated: "plus.circle.fill"
         case .choreRemoved: "minus.circle.fill"
+        case .choreEdited: "pencil.circle.fill"
         }
     }
 

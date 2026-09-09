@@ -78,6 +78,29 @@ final class HouseholdStoreTests: XCTestCase {
         XCTAssertEqual(store.history.count, 100)
     }
 
+    func testWeekdayScheduleSelectsOnlyActiveChores() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let monday = calendar.date(from: DateComponents(year: 2026, month: 9, day: 7))!
+        let store = HouseholdStore(role: .parent, childName: "Test", chores: [
+            Chore(title: "Weekday", detail: "", evidence: .checkIn, activeWeekdays: Set(2...6)),
+            Chore(title: "Weekend", detail: "", evidence: .checkIn, activeWeekdays: [1, 7]),
+            Chore(title: "Archived", detail: "", evidence: .checkIn, isArchived: true)
+        ], devices: [])
+        XCTAssertEqual(store.activeChores(on: monday, calendar: calendar).map(\.title), ["Weekday"])
+    }
+
+    func testEditingChorePreservesIdentityAndRecordsEvent() {
+        let store = makeStore(states: [.waiting])
+        var chore = store.chores[0]
+        chore.title = "Updated"
+        chore.dueMinutes = 510
+        store.updateChore(chore)
+        XCTAssertEqual(store.chores[0].id, chore.id)
+        XCTAssertEqual(store.chores[0].dueMinutes, 510)
+        XCTAssertEqual(store.history.first?.kind, .choreEdited)
+    }
+
     private func makeStore(states: [ChoreState]) -> HouseholdStore {
         HouseholdStore(
             role: .parent,

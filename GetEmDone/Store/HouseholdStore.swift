@@ -35,15 +35,17 @@ final class HouseholdStore: ObservableObject {
     }
 
     var accessState: AccessState {
-        guard !chores.isEmpty else { return .locked }
-        if chores.allSatisfy({ $0.state == .approved }) { return .unlocked(until: nil) }
-        if chores.allSatisfy({ $0.state != .waiting }) { return .awaitingApproval }
+        let active = activeChores()
+        guard !active.isEmpty else { return .locked }
+        if active.allSatisfy({ $0.state == .approved }) { return .unlocked(until: nil) }
+        if active.allSatisfy({ $0.state != .waiting }) { return .awaitingApproval }
         return .locked
     }
 
-    var completedCount: Int { chores.filter { $0.state != .waiting }.count }
-    var progress: Double { chores.isEmpty ? 0 : Double(completedCount) / Double(chores.count) }
-    var canApproveAll: Bool { chores.contains { $0.state == .submitted } }
+    var todaysChores: [Chore] { activeChores() }
+    var completedCount: Int { todaysChores.filter { $0.state != .waiting }.count }
+    var progress: Double { todaysChores.isEmpty ? 0 : Double(completedCount) / Double(todaysChores.count) }
+    var canApproveAll: Bool { todaysChores.contains { $0.state == .submitted } }
 
     func submit(_ chore: Chore) {
         update(chore.id) { $0.state = .submitted }
@@ -76,6 +78,28 @@ final class HouseholdStore: ObservableObject {
         chores.remove(atOffsets: offsets)
         names.forEach { record(.choreRemoved, "\($0) was removed") }
         persistSoon()
+    }
+
+    func updateChore(_ chore: Chore) {
+        guard let index = chores.firstIndex(where: { $0.id == chore.id }) else { return }
+        var cleaned = chore
+        cleaned.title = chore.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.title.isEmpty, !cleaned.activeWeekdays.isEmpty else { return }
+        chores[index] = cleaned
+        record(.choreEdited, "\(cleaned.title) was updated")
+        persistSoon()
+    }
+
+    func setArchived(_ archived: Bool, chore: Chore) {
+        guard let index = chores.firstIndex(where: { $0.id == chore.id }) else { return }
+        chores[index].isArchived = archived
+        record(.choreEdited, "\(chore.title) was \(archived ? "archived" : "restored")")
+        persistSoon()
+    }
+
+    func activeChores(on date: Date = .now, calendar: Calendar = .current) -> [Chore] {
+        let weekday = calendar.component(.weekday, from: date)
+        return chores.filter { !$0.isArchived && $0.activeWeekdays.contains(weekday) }
     }
 
     func approveSubmitted() async {

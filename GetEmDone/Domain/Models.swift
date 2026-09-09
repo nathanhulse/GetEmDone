@@ -45,14 +45,25 @@ struct Chore: Identifiable, Hashable, Codable, Sendable {
     var evidence: ChoreEvidence
     var state: ChoreState
     var activeWeekdays: Set<Int>
+    var dueMinutes: Int?
+    var isArchived: Bool
 
-    init(id: UUID = UUID(), title: String, detail: String, evidence: ChoreEvidence, state: ChoreState = .waiting, activeWeekdays: Set<Int> = Set(1...7)) {
+    init(id: UUID = UUID(), title: String, detail: String, evidence: ChoreEvidence, state: ChoreState = .waiting, activeWeekdays: Set<Int> = Set(1...7), dueMinutes: Int? = nil, isArchived: Bool = false) {
         self.id = id
         self.title = title
         self.detail = detail
         self.evidence = evidence
         self.state = state
         self.activeWeekdays = activeWeekdays
+        self.dueMinutes = dueMinutes
+        self.isArchived = isArchived
+    }
+
+    var recurrenceLabel: String {
+        if activeWeekdays == Set(1...7) { return "Every day" }
+        if activeWeekdays == Set(2...6) { return "Weekdays" }
+        if activeWeekdays == [1, 7] { return "Weekends" }
+        return "\(activeWeekdays.count) days a week"
     }
 }
 
@@ -100,6 +111,7 @@ struct ActivityEvent: Identifiable, Hashable, Codable, Sendable {
         case dailyReset
         case choreCreated
         case choreRemoved
+        case choreEdited
     }
 
     let id: UUID

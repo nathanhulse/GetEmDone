@@ -17,6 +17,7 @@
 		AC6B7C455D926C708F188A04 /* GetEmDoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAC4F3D8DFCAF7C30B6FB33E /* GetEmDoneApp.swift */; };
 		B9E1C03EA4F49F085D0A6944 /* AppShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD35A974EAFAA3A37431CD5B /* AppShell.swift */; };
 		C8253EF5AFD30171BB4AD1EB /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = C848FC19A200CBA2A691154B /* Models.swift */; };
+		D77B26B4E21F8E801F3181B8 /* RoutineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1993E83C1AE575CCC0654B2B /* RoutineView.swift */; };
 		E00C3A5B0FEF01D66F379428 /* ChildStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE9E2109759E4B71DA1AC761 /* ChildStatusView.swift */; };
 		E92D061B276D95610AF0CCE7 /* Enforcement.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC413342666EC0C1FE06ECE5 /* Enforcement.swift */; };
 		F00A8DC825A4A760FBAE71A1 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C049529FD1E21616207AB88A /* TodayView.swift */; };
@@ -34,6 +35,7 @@
 
 /* Begin PBXFileReference section */
 		0604422127F4475B2CDE195A /* DevicesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevicesView.swift; sourceTree = "<group>"; };
+		1993E83C1AE575CCC0654B2B /* RoutineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineView.swift; sourceTree = "<group>"; };
 		2B964060CD0BE8EEC1EE9A50 /* HouseholdStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseholdStoreTests.swift; sourceTree = "<group>"; };
 		60CACC7681D15F3D6A85ECB7 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		C049529FD1E21616207AB88A /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
@@ -85,6 +87,7 @@
 				D8BA996FBA4074BA6EE87195 /* DesignSystem.swift */,
 				0604422127F4475B2CDE195A /* DevicesView.swift */,
 				60CACC7681D15F3D6A85ECB7 /* HistoryView.swift */,
+				1993E83C1AE575CCC0654B2B /* RoutineView.swift */,
 				E09B168CBE88A857251A6453 /* SettingsView.swift */,
 				C049529FD1E21616207AB88A /* TodayView.swift */,
 			);
@@ -226,6 +229,7 @@
 				75C152E6CF0AC665EB62804B /* HouseholdStore.swift in Sources */,
 				C8253EF5AFD30171BB4AD1EB /* Models.swift in Sources */,
 				4474E6D3B438FC5D6E0B56B8 /* Persistence.swift in Sources */,
+				D77B26B4E21F8E801F3181B8 /* RoutineView.swift in Sources */,
 				61445346DBFC02AE369D380A /* SettingsView.swift in Sources */,
 				F00A8DC825A4A760FBAE71A1 /* TodayView.swift in Sources */,
 			);

@@ -72,7 +72,7 @@ struct TodayView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(store.role == .parent ? "\(store.childName)’s morning" : "Good morning, \(store.childName)")
                     .font(.title2.bold())
-                Text("\(store.completedCount) of \(store.chores.count) responsibilities checked in")
+                Text("\(store.completedCount) of \(store.todaysChores.count) responsibilities checked in")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -116,7 +116,7 @@ struct TodayView: View {
                 .font(.caption.weight(.bold))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 4)
-            ForEach(store.chores) { chore in
+            ForEach(store.todaysChores) { chore in
                 ChoreRow(chore: chore, role: store.role) {
                     store.role == .parent ? store.approve(chore) : store.submit(chore)
                     Task { await store.reconcilePolicy() }
@@ -170,7 +170,7 @@ struct TodayView: View {
     }
 
     private var nextStep: String {
-        let remaining = store.chores.filter { $0.state == .waiting }.count
+        let remaining = store.todaysChores.filter { $0.state == .waiting }.count
         return remaining == 1 ? "One left!" : "\(remaining) left"
     }
 }
