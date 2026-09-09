@@ -2,10 +2,12 @@ import Fastify from "fastify";
 import { Actor, DomainError, HouseholdRepository } from "./domain.js";
 import { SQLiteHouseholdRepository } from "./sqlite-repository.js";
 import { EncryptedEvidenceVault, MemoryPrivateObjectStore } from "./evidence.js";
+import { jwtAuthenticatorFromEnvironment, type ActorAuthenticator } from "./auth.js";
 
 export function buildApp(
   repository: HouseholdRepository = process.env.DATABASE_PATH ? new SQLiteHouseholdRepository(process.env.DATABASE_PATH) : new HouseholdRepository(),
-  evidenceVault = new EncryptedEvidenceVault(new MemoryPrivateObjectStore(), evidenceKey())
+  evidenceVault = new EncryptedEvidenceVault(new MemoryPrivateObjectStore(), evidenceKey()),
+  authenticator: ActorAuthenticator = jwtAuthenticatorFromEnvironment()
 ) {
   const app = Fastify({ logger: false, bodyLimit: 7 * 1024 * 1024 });
 
@@ -22,14 +24,7 @@ export function buildApp(
   app.decorateRequest("actor");
   app.addHook("preHandler", async request => {
     if (request.url.startsWith("/health/")) return;
-    const accountId = header(request.headers["x-test-account-id"]);
-    const householdId = header(request.headers["x-test-household-id"]);
-    const memberId = header(request.headers["x-test-member-id"]);
-    const role = header(request.headers["x-test-role"]);
-    if (!accountId || !householdId || !memberId || !["owner", "guardian", "child"].includes(role ?? "")) {
-      throw new DomainError(401, "UNAUTHENTICATED", "Authentication is required");
-    }
-    request.actor = { accountId, householdId, memberId, role: role as Actor["role"] };
+    request.actor = await authenticator.authenticate(request.headers);
   });
 
   app.get("/health/live", async () => ({ status: "ok" }));
