@@ -1,7 +1,8 @@
 import Fastify from "fastify";
 import { Actor, DomainError, HouseholdRepository } from "./domain.js";
+import { SQLiteHouseholdRepository } from "./sqlite-repository.js";
 
-export function buildApp(repository = new HouseholdRepository()) {
+export function buildApp(repository: HouseholdRepository = process.env.DATABASE_PATH ? new SQLiteHouseholdRepository(process.env.DATABASE_PATH) : new HouseholdRepository()) {
   const app = Fastify({ logger: false, bodyLimit: 256 * 1024 });
 
   app.setErrorHandler((error, request, reply) => {

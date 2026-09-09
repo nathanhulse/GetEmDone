@@ -29,6 +29,13 @@ export interface Change {
   version: number;
 }
 
+export interface RepositoryState {
+  occurrences: Occurrence[];
+  idempotency: Array<[string, { hash: string; response: unknown }]>;
+  changes: Change[];
+  cursor: number;
+}
+
 export class DomainError extends Error {
   constructor(public readonly status: number, public readonly code: string, message: string) {
     super(message);
@@ -40,6 +47,22 @@ export class HouseholdRepository {
   private readonly idempotency = new Map<string, { hash: string; response: unknown }>();
   private readonly changes: Change[] = [];
   private cursor = 0;
+
+  constructor(state?: RepositoryState) {
+    for (const occurrence of state?.occurrences ?? []) this.occurrences.set(occurrence.id, structuredClone(occurrence));
+    for (const [key, value] of state?.idempotency ?? []) this.idempotency.set(key, structuredClone(value));
+    this.changes = structuredClone(state?.changes ?? []);
+    this.cursor = state?.cursor ?? 0;
+  }
+
+  exportState(): RepositoryState {
+    return {
+      occurrences: [...this.occurrences.values()].map(value => structuredClone(value)),
+      idempotency: [...this.idempotency.entries()].map(([key, value]) => [key, structuredClone(value)]),
+      changes: structuredClone(this.changes),
+      cursor: this.cursor
+    };
+  }
 
   seed(occurrence: Occurrence): void { this.occurrences.set(occurrence.id, structuredClone(occurrence)); }
 
@@ -107,4 +130,3 @@ export class HouseholdRepository {
 }
 
 export function makeId(prefix: string): string { return `${prefix}_${randomUUID()}`; }
-
