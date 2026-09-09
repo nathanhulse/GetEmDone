@@ -48,8 +48,20 @@ final class HouseholdStore: ObservableObject {
     var canApproveAll: Bool { todaysChores.contains { $0.state == .submitted } }
 
     func submit(_ chore: Chore) {
+        guard let current = chores.first(where: { $0.id == chore.id }), current.state == .waiting, current.canSubmit else { return }
         update(chore.id) { $0.state = .submitted }
         record(.submitted, "\(chore.title) was submitted")
+        persistSoon()
+    }
+
+    func attachPhoto(to chore: Chore) {
+        update(chore.id) { $0.evidenceProgress = .photoReady }
+        persistSoon()
+    }
+
+    func recordPractice(seconds: Int, for chore: Chore) {
+        guard seconds > 0 else { return }
+        update(chore.id) { $0.evidenceProgress = .timer(seconds: seconds) }
         persistSoon()
     }
 

@@ -37,6 +37,7 @@ struct TodayView: View {
         .sheet(item: $sheet) { destination in
             switch destination {
             case .newChore: AddChoreView(store: store)
+            case .evidence(let chore): EvidenceCheckInView(chore: chore, store: store)
             }
         }
         .alert("Something went wrong", isPresented: Binding(
@@ -118,7 +119,13 @@ struct TodayView: View {
                 .padding(.horizontal, 4)
             ForEach(store.todaysChores) { chore in
                 ChoreRow(chore: chore, role: store.role) {
-                    store.role == .parent ? store.approve(chore) : store.submit(chore)
+                    if store.role == .parent {
+                        store.approve(chore)
+                    } else if chore.evidence == .checkIn {
+                        store.submit(chore)
+                    } else {
+                        sheet = .evidence(chore)
+                    }
                     Task { await store.reconcilePolicy() }
                 } onRedo: {
                     store.requestRedo(chore)
@@ -177,7 +184,14 @@ struct TodayView: View {
 
 private enum TodaySheet: Identifiable {
     case newChore
-    var id: Self { self }
+    case evidence(Chore)
+
+    var id: String {
+        switch self {
+        case .newChore: "new"
+        case .evidence(let chore): chore.id.uuidString
+        }
+    }
 }
 
 private struct AddChoreView: View {

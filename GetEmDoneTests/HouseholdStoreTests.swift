@@ -101,6 +101,27 @@ final class HouseholdStoreTests: XCTestCase {
         XCTAssertEqual(store.history.first?.kind, .choreEdited)
     }
 
+    func testPhotoChoreCannotSubmitWithoutEvidence() {
+        let chore = Chore(title: "Bed", detail: "", evidence: .photo)
+        let store = HouseholdStore(role: .child, childName: "Test", chores: [chore], devices: [])
+        store.submit(chore)
+        XCTAssertEqual(store.chores[0].state, .waiting)
+        store.attachPhoto(to: chore)
+        store.submit(store.chores[0])
+        XCTAssertEqual(store.chores[0].state, .submitted)
+    }
+
+    func testTimerChoreRequiresMinimumDuration() {
+        let chore = Chore(title: "Piano", detail: "", evidence: .timer, minimumTimerSeconds: 60)
+        let store = HouseholdStore(role: .child, childName: "Test", chores: [chore], devices: [])
+        store.recordPractice(seconds: 30, for: chore)
+        store.submit(store.chores[0])
+        XCTAssertEqual(store.chores[0].state, .waiting)
+        store.recordPractice(seconds: 60, for: chore)
+        store.submit(store.chores[0])
+        XCTAssertEqual(store.chores[0].state, .submitted)
+    }
+
     private func makeStore(states: [ChoreState]) -> HouseholdStore {
         HouseholdStore(
             role: .parent,

@@ -14,6 +14,7 @@
 		6E78F523028D145F885D298E /* DevicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0604422127F4475B2CDE195A /* DevicesView.swift */; };
 		75C152E6CF0AC665EB62804B /* HouseholdStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D96B9358D3050EE409E6EFF1 /* HouseholdStore.swift */; };
 		7C35FDDE29E94219551B7D31 /* HouseholdStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B964060CD0BE8EEC1EE9A50 /* HouseholdStoreTests.swift */; };
+		9F2011E34EE4C58B865FDA3B /* EvidenceCheckInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08EC83F629153A695FC3D5A /* EvidenceCheckInView.swift */; };
 		AC6B7C455D926C708F188A04 /* GetEmDoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAC4F3D8DFCAF7C30B6FB33E /* GetEmDoneApp.swift */; };
 		B9E1C03EA4F49F085D0A6944 /* AppShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD35A974EAFAA3A37431CD5B /* AppShell.swift */; };
 		C8253EF5AFD30171BB4AD1EB /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = C848FC19A200CBA2A691154B /* Models.swift */; };
@@ -38,6 +39,7 @@
 		1993E83C1AE575CCC0654B2B /* RoutineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineView.swift; sourceTree = "<group>"; };
 		2B964060CD0BE8EEC1EE9A50 /* HouseholdStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseholdStoreTests.swift; sourceTree = "<group>"; };
 		60CACC7681D15F3D6A85ECB7 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		B08EC83F629153A695FC3D5A /* EvidenceCheckInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvidenceCheckInView.swift; sourceTree = "<group>"; };
 		C049529FD1E21616207AB88A /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		C3C409081BAA1F6632E4C227 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
 		C848FC19A200CBA2A691154B /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
@@ -86,6 +88,7 @@
 				FE9E2109759E4B71DA1AC761 /* ChildStatusView.swift */,
 				D8BA996FBA4074BA6EE87195 /* DesignSystem.swift */,
 				0604422127F4475B2CDE195A /* DevicesView.swift */,
+				B08EC83F629153A695FC3D5A /* EvidenceCheckInView.swift */,
 				60CACC7681D15F3D6A85ECB7 /* HistoryView.swift */,
 				1993E83C1AE575CCC0654B2B /* RoutineView.swift */,
 				E09B168CBE88A857251A6453 /* SettingsView.swift */,
@@ -224,6 +227,7 @@
 				260A636ADFA7CFE9B80F96A4 /* DesignSystem.swift in Sources */,
 				6E78F523028D145F885D298E /* DevicesView.swift in Sources */,
 				E92D061B276D95610AF0CCE7 /* Enforcement.swift in Sources */,
+				9F2011E34EE4C58B865FDA3B /* EvidenceCheckInView.swift in Sources */,
 				AC6B7C455D926C708F188A04 /* GetEmDoneApp.swift in Sources */,
 				3416C78AB4B322FA5ABF5765 /* HistoryView.swift in Sources */,
 				75C152E6CF0AC665EB62804B /* HouseholdStore.swift in Sources */,

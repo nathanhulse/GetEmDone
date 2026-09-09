@@ -38,6 +38,20 @@ enum ChoreState: String, Codable, Sendable {
     case approved
 }
 
+enum EvidenceProgress: Hashable, Codable, Sendable {
+    case none
+    case photoReady
+    case timer(seconds: Int)
+
+    var isReady: Bool {
+        switch self {
+        case .none: false
+        case .photoReady: true
+        case .timer(let seconds): seconds > 0
+        }
+    }
+}
+
 struct Chore: Identifiable, Hashable, Codable, Sendable {
     let id: UUID
     var title: String
@@ -47,8 +61,10 @@ struct Chore: Identifiable, Hashable, Codable, Sendable {
     var activeWeekdays: Set<Int>
     var dueMinutes: Int?
     var isArchived: Bool
+    var evidenceProgress: EvidenceProgress
+    var minimumTimerSeconds: Int
 
-    init(id: UUID = UUID(), title: String, detail: String, evidence: ChoreEvidence, state: ChoreState = .waiting, activeWeekdays: Set<Int> = Set(1...7), dueMinutes: Int? = nil, isArchived: Bool = false) {
+    init(id: UUID = UUID(), title: String, detail: String, evidence: ChoreEvidence, state: ChoreState = .waiting, activeWeekdays: Set<Int> = Set(1...7), dueMinutes: Int? = nil, isArchived: Bool = false, evidenceProgress: EvidenceProgress = .none, minimumTimerSeconds: Int = 60) {
         self.id = id
         self.title = title
         self.detail = detail
@@ -57,6 +73,19 @@ struct Chore: Identifiable, Hashable, Codable, Sendable {
         self.activeWeekdays = activeWeekdays
         self.dueMinutes = dueMinutes
         self.isArchived = isArchived
+        self.evidenceProgress = evidenceProgress
+        self.minimumTimerSeconds = minimumTimerSeconds
+    }
+
+
+    var canSubmit: Bool {
+        switch evidence {
+        case .checkIn: return true
+        case .photo: return evidenceProgress == .photoReady
+        case .timer:
+            if case .timer(let seconds) = evidenceProgress { return seconds >= minimumTimerSeconds }
+            return false
+        }
     }
 
     var recurrenceLabel: String {
