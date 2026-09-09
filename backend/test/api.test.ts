@@ -53,3 +53,17 @@ test("reuse of idempotency key with different input is rejected", async () => {
   await app.close();
 });
 
+test("evidence API uploads privately, serves without caching, and deletes", async () => {
+  const { app } = buildApp();
+  const id = `ev_${randomUUID()}`;
+  const upload = await app.inject({ method: "POST", url: `/v1/evidence/${id}`, headers: child, payload: { childMemberId: "child_a", contentType: "image/jpeg", base64: Buffer.from("private-photo").toString("base64"), expiresAt: new Date(Date.now() + 60_000).toISOString() } });
+  assert.equal(upload.statusCode, 201);
+  assert.equal(upload.json().objectKey, undefined);
+  const view = await app.inject({ method: "GET", url: `/v1/evidence/${id}/content`, headers: parent });
+  assert.equal(view.statusCode, 200);
+  assert.equal(view.headers["cache-control"], "private, no-store");
+  assert.equal(view.body, "private-photo");
+  assert.equal((await app.inject({ method: "DELETE", url: `/v1/evidence/${id}`, headers: parent })).statusCode, 204);
+  assert.equal((await app.inject({ method: "GET", url: `/v1/evidence/${id}/content`, headers: parent })).statusCode, 410);
+  await app.close();
+});
