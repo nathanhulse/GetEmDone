@@ -7,11 +7,21 @@ settings:
   base:
     SWIFT_VERSION: 6.0
     DEVELOPMENT_TEAM: ""
+    MARKETING_VERSION: 0.1.0
+    CURRENT_PROJECT_VERSION: 1
 targets:
   GetEmDone:
     type: application
     platform: iOS
     sources: [GetEmDone]
+    dependencies:
+      - target: GetEmDoneCore
+      - target: GetEmDoneDeviceActivityMonitor
+        embed: true
+      - target: GetEmDoneShieldConfiguration
+        embed: true
+      - target: GetEmDoneShieldAction
+        embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.getemdone.app
@@ -22,12 +32,73 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         TARGETED_DEVICE_FAMILY: "1,2"
         CODE_SIGNING_ALLOWED: NO
+        CODE_SIGN_ENTITLEMENTS: Configuration/Entitlements/GetEmDone.entitlements
+  GetEmDoneCore:
+    type: framework
+    platform: iOS
+    sources: [GetEmDoneCore]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.getemdone.core
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGNING_ALLOWED: NO
+  GetEmDoneDeviceActivityMonitor:
+    type: app-extension
+    platform: iOS
+    sources: [Extensions/DeviceActivityMonitor]
+    dependencies:
+      - target: GetEmDoneCore
+    info:
+      path: Extensions/DeviceActivityMonitor/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.deviceactivity.monitor-extension
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).DeviceActivityMonitorExtension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.getemdone.app.device-activity-monitor
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGN_ENTITLEMENTS: Configuration/Entitlements/DeviceActivityMonitor.entitlements
+        APPLICATION_EXTENSION_API_ONLY: YES
+  GetEmDoneShieldConfiguration:
+    type: app-extension
+    platform: iOS
+    sources: [Extensions/ShieldConfiguration]
+    info:
+      path: Extensions/ShieldConfiguration/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.ManagedSettingsUI.shield-configuration-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldConfigurationExtension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.getemdone.app.shield-configuration
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGN_ENTITLEMENTS: Configuration/Entitlements/ShieldConfiguration.entitlements
+        APPLICATION_EXTENSION_API_ONLY: YES
+  GetEmDoneShieldAction:
+    type: app-extension
+    platform: iOS
+    sources: [Extensions/ShieldAction]
+    info:
+      path: Extensions/ShieldAction/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.ManagedSettings.shield-action-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldActionExtension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.getemdone.app.shield-action
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGN_ENTITLEMENTS: Configuration/Entitlements/ShieldAction.entitlements
+        APPLICATION_EXTENSION_API_ONLY: YES
   GetEmDoneTests:
     type: bundle.unit-test
     platform: iOS
     sources: [GetEmDoneTests]
     dependencies:
       - target: GetEmDone
+      - target: GetEmDoneCore
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.getemdone.tests
@@ -42,4 +113,3 @@ schemes:
     test:
       targets:
         - GetEmDoneTests
-

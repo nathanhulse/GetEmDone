@@ -1,10 +1,26 @@
 import XCTest
+import GetEmDoneCore
 @testable import GetEmDone
 
 @MainActor
 final class HouseholdStoreTests: XCTestCase {
     private struct FixedDateProvider: DateProviding {
         var now: Date
+    }
+
+    func testSharedScreenTimePolicyRespectsGrantAndSafetyRelease() {
+        let now = Date(timeIntervalSince1970: 10_000)
+        let policy = SharedScreenTimePolicy(
+            policyVersion: 7,
+            deviceEnrollmentID: UUID(),
+            mode: .locked,
+            selectionData: Data([1, 2, 3]),
+            grantExpiresAt: now.addingTimeInterval(60),
+            safetyReleaseAt: now.addingTimeInterval(3_600)
+        )
+        XCTAssertFalse(policy.shouldShield(at: now))
+        XCTAssertTrue(policy.shouldShield(at: now.addingTimeInterval(61)))
+        XCTAssertFalse(policy.shouldShield(at: now.addingTimeInterval(3_600)))
     }
     func testAccessStartsLockedWhenAnyChoreIsWaiting() {
         let store = makeStore(states: [.approved, .waiting])
