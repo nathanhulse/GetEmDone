@@ -4,6 +4,8 @@ Status: implementation-ready proposal
 Scope: household synchronization through private evidence lifecycle  
 Last reviewed: 2026-09-09
 
+Implementation note: `backend/src/evidence.ts` now provides the tested encrypted-vault contract with household authorization, AES-256-GCM authenticated encryption, size limits, retention expiry, idempotent deletion, and verified purge behavior. The in-memory private object store is a test adapter; production must supply private S3-compatible storage and an externally managed rotating encryption key.
+
 ## 1. Decision and boundaries
 
 Build a small TypeScript service on the current Node.js LTS runtime, backed by PostgreSQL and private S3-compatible object storage.
