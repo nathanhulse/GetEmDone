@@ -145,6 +145,18 @@ final class HouseholdStoreTests: XCTestCase {
         XCTAssertEqual(chore.evidenceProgress, .none)
     }
 
+    func testSimulatorScreenTimeControllerNeverClaimsRealProtection() async {
+        let controller = SimulatedScreenTimeController()
+        let status = await controller.authorizationStatus()
+        XCTAssertEqual(status, .simulated)
+        let locked = await controller.applyLockedPolicy()
+        XCTAssertEqual(locked.capability, .simulated)
+        XCTAssertTrue(locked.appsShielded)
+        let unlocked = await controller.applyUnlockedPolicy()
+        XCTAssertEqual(unlocked.capability, .simulated)
+        XCTAssertFalse(unlocked.appsShielded)
+    }
+
     func testWeekdayScheduleSelectsOnlyActiveChores() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!

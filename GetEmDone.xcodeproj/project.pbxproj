@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		222AB5B65CB0400DA73D2688 /* ScreenTimeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA67DEA6D089E2290B04F3B2 /* ScreenTimeController.swift */; };
 		260A636ADFA7CFE9B80F96A4 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8BA996FBA4074BA6EE87195 /* DesignSystem.swift */; };
 		3416C78AB4B322FA5ABF5765 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60CACC7681D15F3D6A85ECB7 /* HistoryView.swift */; };
 		4474E6D3B438FC5D6E0B56B8 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3C409081BAA1F6632E4C227 /* Persistence.swift */; };
@@ -52,6 +53,7 @@
 		D67E0CE90AE3729C603CD771 /* GetEmDone.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = GetEmDone.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D8BA996FBA4074BA6EE87195 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		D96B9358D3050EE409E6EFF1 /* HouseholdStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseholdStore.swift; sourceTree = "<group>"; };
+		DA67DEA6D089E2290B04F3B2 /* ScreenTimeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTimeController.swift; sourceTree = "<group>"; };
 		DAC4F3D8DFCAF7C30B6FB33E /* GetEmDoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetEmDoneApp.swift; sourceTree = "<group>"; };
 		E09B168CBE88A857251A6453 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		FE9E2109759E4B71DA1AC761 /* ChildStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildStatusView.swift; sourceTree = "<group>"; };
@@ -144,6 +146,7 @@
 			children = (
 				CC413342666EC0C1FE06ECE5 /* Enforcement.swift */,
 				C3C409081BAA1F6632E4C227 /* Persistence.swift */,
+				DA67DEA6D089E2290B04F3B2 /* ScreenTimeController.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -242,6 +245,7 @@
 				4474E6D3B438FC5D6E0B56B8 /* Persistence.swift in Sources */,
 				D205F58BF9493AA9309AED0F /* ReviewQueueView.swift in Sources */,
 				D77B26B4E21F8E801F3181B8 /* RoutineView.swift in Sources */,
+				222AB5B65CB0400DA73D2688 /* ScreenTimeController.swift in Sources */,
 				61445346DBFC02AE369D380A /* SettingsView.swift in Sources */,
 				F00A8DC825A4A760FBAE71A1 /* TodayView.swift in Sources */,
 			);
