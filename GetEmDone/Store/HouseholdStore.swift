@@ -15,11 +15,19 @@ final class HouseholdStore: ObservableObject {
     @Published var onboardingStep: OnboardingStep = .welcome
     @Published var hasCompletedOnboarding: Bool
     @Published var temporaryOverrides: [TemporaryOverride]
+    @Published private(set) var evidenceUploadStates: [UUID: EvidenceUploadState] = [:]
 
     private let enforcementService: any EnforcementService
     private let persistence: any HouseholdPersistence
     private var persistenceRevision: UInt64 = 0
     private let dateProvider: any DateProviding
+    private let evidenceUploader: any EvidenceUploading
+    private let imageSanitizer: any EvidenceImageSanitizing
+    private struct PendingEvidence {
+        let evidenceID: UUID
+        let data: Data
+    }
+    private var pendingEvidence: [UUID: PendingEvidence] = [:]
 
     init(
         role: HouseholdRole,
@@ -29,7 +37,9 @@ final class HouseholdStore: ObservableObject {
         history: [ActivityEvent] = [],
         enforcementService: any EnforcementService = DemoEnforcementService(),
         persistence: any HouseholdPersistence = MemoryHouseholdPersistence(),
-        dateProvider: any DateProviding = SystemDateProvider()
+        dateProvider: any DateProviding = SystemDateProvider(),
+        evidenceUploader: any EvidenceUploading = EvidenceAPIClient(configuration: nil),
+        imageSanitizer: any EvidenceImageSanitizing = MetadataStrippingImageSanitizer()
     ) {
         self.role = role
         self.childName = childName
@@ -41,6 +51,8 @@ final class HouseholdStore: ObservableObject {
         self.hasCompletedOnboarding = role == .parent && !chores.isEmpty
         self.temporaryOverrides = []
         self.dateProvider = dateProvider
+        self.evidenceUploader = evidenceUploader
+        self.imageSanitizer = imageSanitizer
         self.enforcement = .init(phoneAppsShielded: true, webDistractionsFiltered: true, appleTVPaused: true)
     }
 
@@ -72,6 +84,49 @@ final class HouseholdStore: ObservableObject {
               current.evidence == .photo,
               current.evidenceProgress != .photoReady else { return }
         update(chore.id) { $0.evidenceProgress = .photoReady }
+        persistSoon()
+    }
+
+    func evidenceUploadState(for chore: Chore) -> EvidenceUploadState {
+        evidenceUploadStates[chore.id] ?? .idle
+    }
+
+    func canRetryPhotoUpload(for chore: Chore) -> Bool {
+        pendingEvidence[chore.id] != nil
+    }
+
+    func uploadPhoto(_ originalData: Data, for chore: Chore) async {
+        guard role == .child,
+              let current = chores.first(where: { $0.id == chore.id }),
+              current.state == .waiting,
+              current.evidence == .photo else { return }
+        evidenceUploadStates[chore.id] = .preparing
+        do {
+            let sanitized = try imageSanitizer.sanitizedJPEG(from: originalData)
+            pendingEvidence[chore.id] = PendingEvidence(evidenceID: UUID(), data: sanitized)
+            await uploadPendingPhoto(for: current)
+        } catch {
+            evidenceUploadStates[chore.id] = .failed(message: userFacingEvidenceError(error))
+        }
+    }
+
+    func retryPhotoUpload(for chore: Chore) async {
+        guard let current = chores.first(where: { $0.id == chore.id }),
+              pendingEvidence[chore.id] != nil else { return }
+        await uploadPendingPhoto(for: current)
+    }
+
+    func reportPhotoSelectionFailure(for chore: Chore) {
+        guard role == .child,
+              chores.first(where: { $0.id == chore.id })?.state == .waiting else { return }
+        evidenceUploadStates[chore.id] = .failed(message: EvidenceUploadError.invalidImage.localizedDescription)
+    }
+
+    func removePendingPhoto(for chore: Chore) {
+        guard chores.first(where: { $0.id == chore.id })?.state == .waiting else { return }
+        pendingEvidence[chore.id] = nil
+        evidenceUploadStates[chore.id] = .idle
+        update(chore.id) { $0.evidenceProgress = .none }
         persistSoon()
     }
 
@@ -268,6 +323,29 @@ final class HouseholdStore: ObservableObject {
         mutation(&chores[index])
     }
 
+    private func uploadPendingPhoto(for chore: Chore) async {
+        guard let pending = pendingEvidence[chore.id] else { return }
+        evidenceUploadStates[chore.id] = .uploading
+        do {
+            let receipt = try await evidenceUploader.uploadJPEG(
+                pending.data,
+                evidenceID: pending.evidenceID,
+                choreID: chore.id,
+                expiresAt: dateProvider.now.addingTimeInterval(24 * 60 * 60)
+            )
+            pendingEvidence[chore.id] = nil
+            evidenceUploadStates[chore.id] = .uploaded(evidenceID: receipt.evidenceID)
+            attachPhoto(to: chore)
+        } catch {
+            evidenceUploadStates[chore.id] = .failed(message: userFacingEvidenceError(error))
+        }
+    }
+
+    private func userFacingEvidenceError(_ error: Error) -> String {
+        (error as? LocalizedError)?.errorDescription
+            ?? "The photo couldn't be uploaded. Check your connection and try again."
+    }
+
     private var snapshot: HouseholdSnapshot {
         HouseholdSnapshot(childName: childName, chores: chores, devices: devices, history: Array(history.prefix(100)), temporaryOverrides: temporaryOverrides)
     }
@@ -324,7 +402,8 @@ extension HouseholdStore {
             childName: fixture.childName,
             chores: fixture.chores,
             devices: fixture.devices,
-            persistence: LocalHouseholdPersistence()
+            persistence: LocalHouseholdPersistence(),
+            evidenceUploader: EvidenceAPIClient(configuration: .development)
         )
         store.hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "onboardingComplete")
         return store

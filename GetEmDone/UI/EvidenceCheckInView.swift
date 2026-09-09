@@ -51,11 +51,58 @@ struct EvidenceCheckInView: View {
                         .frame(maxWidth: .infinity).padding(12)
                 }
                 .buttonStyle(.bordered)
+                .disabled(store.evidenceUploadState(for: currentChore).isBusy)
                 .onChange(of: photoItem) { _, item in
-                    if item != nil { store.attachPhoto(to: chore) }
+                    guard let item else { return }
+                    Task {
+                        do {
+                            guard let data = try await item.loadTransferable(type: Data.self) else {
+                                throw EvidenceUploadError.invalidImage
+                            }
+                            await store.uploadPhoto(data, for: currentChore)
+                        } catch {
+                            store.reportPhotoSelectionFailure(for: currentChore)
+                        }
+                    }
                 }
+                uploadStatus
+                Text("Location, camera, and other hidden photo details are removed before upload.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("Photo privacy: location and camera details are removed before upload")
                 if currentChore.canSubmit {
                     Label("Photo ready", systemImage: "checkmark.circle.fill").foregroundStyle(GEDTheme.mint)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var uploadStatus: some View {
+        switch store.evidenceUploadState(for: currentChore) {
+        case .idle:
+            EmptyView()
+        case .preparing:
+            ProgressView("Removing private details…")
+        case .uploading:
+            ProgressView("Uploading securely…")
+        case .uploaded:
+            HStack {
+                Label("Uploaded securely", systemImage: "lock.fill")
+                    .foregroundStyle(GEDTheme.mint)
+                Spacer()
+                Button("Replace") { photoItem = nil; store.removePendingPhoto(for: currentChore) }
+            }
+        case .failed(let message):
+            VStack(alignment: .leading, spacing: 10) {
+                Label(message, systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.red)
+                HStack {
+                    if store.canRetryPhotoUpload(for: currentChore) {
+                        Button("Try again") { Task { await store.retryPhotoUpload(for: currentChore) } }
+                            .buttonStyle(.borderedProminent)
+                    }
+                    Button("Choose another") { photoItem = nil; store.removePendingPhoto(for: currentChore) }
                 }
             }
         }
