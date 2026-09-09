@@ -1,0 +1,187 @@
+# GetEmDone Product Requirements
+
+## Product summary
+
+GetEmDone helps a parent make entertainment access contingent on recurring household responsibilities. A child sees a short daily checklist, supplies any required evidence, and requests approval. Approval removes selected iPhone/iPad app and web restrictions. An optional, separately configured router adapter can pause a designated Apple TV's internet access.
+
+The product is a chore chart with dependable enforcement, not a universal network-control system. It must be usable by an average, somewhat tech-savvy family without changing Wi-Fi passwords, administering DNS, or risking the parent's devices.
+
+## Goals
+
+- Make the daily chores-to-access loop understandable in under one minute.
+- Restrict parent-selected distractions on an authorized child's iOS/iPadOS devices using Apple's Family Controls stack.
+- Preserve essential communication, school, health, navigation, authentication, and recovery paths.
+- Let a parent approve, reject, defer, or temporarily override from their own device.
+- Operate predictably through offline periods, delayed push delivery, app termination, and day rollover.
+- Optionally pause named Apple TV devices through explicitly supported router adapters.
+- Protect children's identity, household details, and evidence media by default.
+
+## Non-goals for MVP
+
+- Disabling cellular service, Wi-Fi radios, emergency calls, or the entire child device.
+- Universal Android, router, smart-TV, console, or streaming-service support.
+- Identifying which person is currently watching a shared Apple TV.
+- Per-tvOS-app blocking or modifying Apple TV profiles.
+- Requiring custom DNS, router firmware, port forwarding, or GetEmDone hardware.
+- Fully automated AI judgment of chore completion.
+- Unbreakable enforcement against a determined adversary with administrator-level access.
+- Behavioral scoring, public leaderboards, ads, or sale of child data.
+
+## Users and jobs
+
+**Parent/guardian:** Define expectations, choose restricted apps, review evidence, recover quickly from mistakes, and use their own devices normally.
+
+**Child:** Know what remains, complete work, submit proof with little friction, understand why access is restricted, and regain access promptly after approval.
+
+**Household administrator:** Optionally connect a supported router and assign one or more Apple TVs without networking expertise.
+
+## Core experience
+
+1. A parent creates a household, adds a child, completes Apple authorization, and selects restricted apps/categories through Apple's opaque system picker.
+2. The parent creates recurring chores, schedules the daily reset, and chooses completion evidence and approval rules.
+3. At the scheduled reset, the child device locally enters chore mode and shields selected distractions.
+4. The child completes chores and submits required checkmarks, photos, audio, or timed practice evidence.
+5. The parent receives a request and approves or sends an item back with a short reason.
+6. A signed approval is synchronized to the child device and shields are removed for the configured access window.
+7. The next reset is scheduled locally. An optional router adapter applies the corresponding lock/unlock state to explicitly assigned Apple TVs.
+
+## Functional requirements
+
+### Household and authorization
+
+- Support parent and child roles and multiple children per household.
+- Require explicit Apple Family Controls authorization for each managed child/device.
+- Expose authorization status, affected device, schedule, and recovery options in plain language.
+- Never silently enroll, reassign, or restrict a device.
+- Prevent a child role from changing enforcement policy or approving its own request.
+
+### Chores and schedules
+
+- Create, edit, reorder, archive, and assign chores.
+- Support daily and selected-weekday recurrence, optional due times, and a household time zone.
+- Support completion modes: child checkoff, timer, photo, audio, and parent-only completion.
+- Allow an optional minimum duration for timed practice while clearly labeling it as elapsed time, not proof of quality.
+- Material schedule changes take effect at a clear boundary and are recorded in activity history.
+- Day rollover must be deterministic across daylight-saving changes and temporary travel.
+
+### Enforcement
+
+- Apply and remove Managed Settings shields for parent-selected apps, categories, and permitted web scopes.
+- Keep GetEmDone and parent-configured essentials available. The onboarding review must warn against selecting critical apps.
+- Schedule lock/reset locally so enforcement does not depend on a midnight server push.
+- Apply a valid signed approval when received through push, foreground refresh, or manual refresh.
+- Cache the day's valid approval locally so loss of connectivity does not relock an approved child.
+- Provide a time-limited, cryptographically verifiable offline unlock code generated by the parent.
+- Clearly distinguish chore-time distraction rules from any always-on safety filter.
+- Display a helpful shield explanation and a path back to today's chores.
+
+### Parent decisions and overrides
+
+- Approve or reject individual items and approve all eligible items.
+- Support “unlock for 30 minutes,” “unlock until time,” “unlock for today,” “skip today,” and “lock now.”
+- Require parent authentication for policy changes and overrides.
+- Record actor, child, action, affected target, and timestamp in a privacy-conscious audit history.
+- Ensure overrides expire automatically and visibly.
+
+### Evidence
+
+- Compress uploads, show upload state, retry safely, and prevent duplicate submissions.
+- Let the child replace evidence before review and the parent delete evidence.
+- Treat parent approval as authoritative; automated analysis, if added later, is advisory only.
+- Default evidence retention to the shortest useful period and expose automatic deletion controls.
+
+### Notifications and synchronization
+
+- Notify a parent of a completed submission without repeatedly alerting for the same version.
+- Surface pending/offline/approved/rejected states on both devices.
+- Make state changes idempotent and resolve conflicts through server-issued versions plus signed grants.
+- Never infer approval solely from a missed message or timeout.
+
+### Optional Apple TV control
+
+- Router support is capability-gated and labeled optional.
+- Connect only through documented, explicitly supported router adapters.
+- Discover candidate devices, let the parent choose, then run a reversible pause test and require confirmation.
+- Default to pausing the entire assigned Apple TV's WAN access rather than maintaining fragile service-domain lists.
+- Never assign devices based only on a guessed hostname or manufacturer.
+- Provide independent TV overrides so a parent can watch without unlocking a child's phone.
+- If router control is unavailable, stale, or fails, report the actual status; do not claim the TV is blocked.
+- Router failure must not break the household's general internet or change DNS/DHCP settings.
+
+## State model
+
+For each child and local calendar day:
+
+- `scheduled`: future reset prepared.
+- `locked`: chores outstanding; configured distractions shielded.
+- `in_progress`: one or more chores completed but approval conditions unmet.
+- `pending_review`: submission ready for parent action.
+- `approved`: a valid grant unlocks configured targets until expiry/reset.
+- `overridden`: a parent grant temporarily modifies normal enforcement.
+- `needs_attention`: authorization, sync, or adapter state prevents a trustworthy result.
+
+Server state is the collaboration record; locally scheduled restrictions and signed grants are the enforcement inputs. UI must not show “unlocked” or “TV paused” without confirmation from the responsible enforcement surface.
+
+## Safety and recovery
+
+- Scope enforcement to explicitly authorized child devices and assigned Apple TVs.
+- Never modify a parent's device or the whole network by default.
+- Favor access when GetEmDone cannot safely determine whether a previously issued unlock remains valid; retain only well-defined, locally scheduled restrictions.
+- Never block emergency calling or intentionally interfere with OS safety functions.
+- Provide an always-visible parent recovery flow protected by device-owner authentication.
+- Provide a locally verifiable offline unlock path.
+- Expire temporary restrictions or overrides at a configured safety boundary.
+- Preview affected apps/devices before activation and after every material policy change.
+- Offer a one-tap “Unlock all managed targets” control with confirmation and clear result status.
+
+## Privacy and security
+
+- Collect only account, household policy, device assignment, chore state, audit metadata, and optional evidence needed to operate the service.
+- Do not store Apple's opaque app-selection tokens in analytics, logs, or human-readable catalogs.
+- Encrypt transport and stored sensitive data; place evidence in private object storage using short-lived access URLs.
+- Separate households at every authorization layer; use least-privilege roles for parent, child, support, and services.
+- Require recent parent authentication for enrollment, evidence access, policy changes, and recovery.
+- Do not use evidence or child activity for advertising, model training, or unrelated profiling.
+- Provide export, deletion, retention, consent, and account-recovery flows appropriate to child data and applicable law.
+- Redact secrets, media URLs, router credentials/tokens, and child identifiers from telemetry.
+- Store router credentials in platform-protected secret storage; request the minimum adapter permissions.
+- Maintain an incident response plan, dependency inventory, security review, and deletion verification.
+
+## Nonfunctional requirements
+
+- **Usability:** Median initial phone-only setup under 10 minutes in moderated testing; no network vocabulary required.
+- **Responsiveness:** Local shield changes reflected within 2 seconds; online parent approval reflected within 10 seconds at p95 under healthy push/network conditions.
+- **Offline behavior:** Daily reset, cached grant validation, chore entry, and offline unlock work without cloud connectivity; queued changes reconcile idempotently.
+- **Reliability:** No false claim of an enforcement state. Monthly crash-free sessions target at least 99.5% during beta and 99.8% for launch.
+- **Accessibility:** VoiceOver, Dynamic Type, sufficient contrast, non-color status cues, accessible media descriptions, and reduced-motion support.
+- **Compatibility:** Declare and test a minimum iOS/iPadOS version based on required Family Controls APIs; show unsupported OS/router states before enrollment.
+- **Observability:** Measure authorization health, schedule execution, grant application latency, adapter commands/results, and recovery usage without recording sensitive selections or evidence.
+- **Localization:** Dates, times, recurrence, names, and day boundaries must be locale- and time-zone-safe.
+
+## MVP success measures
+
+- At least 80% of test households complete phone setup without live assistance.
+- At least 95% of eligible online approvals apply within 10 seconds in controlled reliability testing.
+- Zero confirmed cases of GetEmDone unintentionally restricting an unenrolled parent device during beta.
+- At least 70% of activated households complete three or more chore cycles in week one.
+- Fewer than 5% of cycles require a recovery override because of product failure.
+- Router beta measures pause-command success separately by adapter; no adapter is marketed until it meets its published threshold.
+
+## MVP release acceptance
+
+- Family Controls entitlement and distribution path are validated before promising enforcement publicly.
+- Supported device/OS matrix passes lock, unlock, reboot, offline, push-delay, time-change, and authorization-revocation tests.
+- Parent can recover from every restriction state using authenticated online or offline procedures.
+- Evidence lifecycle, household deletion, privacy disclosures, and parental consent are implemented and tested.
+- Accessibility audit has no blocking issues in onboarding, today's chores, approval, shield, and recovery flows.
+- Apple TV support, if enabled at launch, is feature-flagged per adapter and cannot alter whole-network configuration.
+
+## Dependencies and risks
+
+- Apple approval of the Family Controls entitlement and App Review interpretation.
+- OS limits on background delivery and Family Controls behavior across releases.
+- Child/parent account linking, legal consent obligations, and evidence-media sensitivity.
+- Undocumented or commercially restricted router APIs. Every adapter needs explicit validation and may be withdrawn independently.
+- Shared Apple TV ambiguity: network policy controls the device, not its current viewer.
+- Family conflict caused by rigid defaults; overrides and transparent explanations are product requirements, not edge features.
+
