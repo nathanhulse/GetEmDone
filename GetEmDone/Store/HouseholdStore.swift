@@ -7,24 +7,30 @@ final class HouseholdStore: ObservableObject {
     @Published var childName: String
     @Published var chores: [Chore]
     @Published var devices: [ManagedDevice]
+    @Published var history: [ActivityEvent]
     @Published var enforcement: EnforcementSnapshot
     @Published var isApplyingPolicy = false
     @Published var errorMessage: String?
 
     private let enforcementService: any EnforcementService
+    private let persistence: any HouseholdPersistence
 
     init(
         role: HouseholdRole,
         childName: String,
         chores: [Chore],
         devices: [ManagedDevice],
-        enforcementService: any EnforcementService = DemoEnforcementService()
+        history: [ActivityEvent] = [],
+        enforcementService: any EnforcementService = DemoEnforcementService(),
+        persistence: any HouseholdPersistence = MemoryHouseholdPersistence()
     ) {
         self.role = role
         self.childName = childName
         self.chores = chores
         self.devices = devices
+        self.history = history
         self.enforcementService = enforcementService
+        self.persistence = persistence
         self.enforcement = .init(phoneAppsShielded: true, webDistractionsFiltered: true, appleTVPaused: true)
     }
 
@@ -40,31 +46,82 @@ final class HouseholdStore: ObservableObject {
 
     func submit(_ chore: Chore) {
         update(chore.id) { $0.state = .submitted }
+        record(.submitted, "\(chore.title) was submitted")
+        persistSoon()
     }
 
     func approve(_ chore: Chore) {
         update(chore.id) { $0.state = .approved }
+        record(.approved, "\(chore.title) was approved")
+        persistSoon()
     }
 
     func requestRedo(_ chore: Chore) {
         update(chore.id) { $0.state = .waiting }
+        record(.redoRequested, "\(chore.title) needs another try")
+        persistSoon()
+    }
+
+    func addChore(title: String, detail: String, evidence: ChoreEvidence, activeWeekdays: Set<Int>) {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty else { return }
+        chores.append(Chore(title: trimmedTitle, detail: detail, evidence: evidence, activeWeekdays: activeWeekdays))
+        record(.choreCreated, "\(trimmedTitle) was added")
+        persistSoon()
+    }
+
+    func removeChores(at offsets: IndexSet) {
+        let names = offsets.compactMap { chores.indices.contains($0) ? chores[$0].title : nil }
+        chores.remove(atOffsets: offsets)
+        names.forEach { record(.choreRemoved, "\($0) was removed") }
+        persistSoon()
     }
 
     func approveSubmitted() async {
         for index in chores.indices where chores[index].state == .submitted {
+            record(.approved, "\(chores[index].title) was approved")
             chores[index].state = .approved
         }
+        await persist()
         await reconcilePolicy()
     }
 
     func unlockForToday() async {
         for index in chores.indices { chores[index].state = .approved }
+        record(.override, "Parent unlocked entertainment for today")
+        await persist()
         await reconcilePolicy()
     }
 
     func resetDay() async {
         for index in chores.indices { chores[index].state = .waiting }
+        record(.dailyReset, "A new daily routine started")
+        await persist()
         await reconcilePolicy()
+    }
+
+    func load() async {
+        do {
+            guard let snapshot = try await persistence.load() else {
+                await persist()
+                return
+            }
+            childName = snapshot.childName
+            chores = snapshot.chores
+            devices = snapshot.devices
+            history = snapshot.history
+            await reconcilePolicy()
+        } catch {
+            errorMessage = "Saved routines couldn’t be loaded. Nothing was restricted automatically."
+        }
+    }
+
+    func persist() async {
+        do {
+            try await persistence.save(snapshot)
+        } catch {
+            errorMessage = "Changes are visible now but couldn’t be saved."
+        }
     }
 
     func reconcilePolicy() async {
@@ -85,6 +142,19 @@ final class HouseholdStore: ObservableObject {
         guard let index = chores.firstIndex(where: { $0.id == id }) else { return }
         mutation(&chores[index])
     }
+
+    private var snapshot: HouseholdSnapshot {
+        HouseholdSnapshot(childName: childName, chores: chores, devices: devices, history: Array(history.prefix(100)))
+    }
+
+    private func record(_ kind: ActivityEvent.Kind, _ message: String) {
+        history.insert(ActivityEvent(kind: kind, message: message), at: 0)
+        if history.count > 100 { history.removeLast(history.count - 100) }
+    }
+
+    private func persistSoon() {
+        Task { await persist() }
+    }
 }
 
 extension HouseholdStore {
@@ -101,6 +171,17 @@ extension HouseholdStore {
                 ManagedDevice(name: "Maya’s iPhone", kind: .iPhone, isProtected: true),
                 ManagedDevice(name: "Family Room", kind: .appleTV, isProtected: true)
             ]
+        )
+    }
+
+    static var live: HouseholdStore {
+        let fixture = preview
+        return HouseholdStore(
+            role: fixture.role,
+            childName: fixture.childName,
+            chores: fixture.chores,
+            devices: fixture.devices,
+            persistence: LocalHouseholdPersistence()
         )
     }
 }

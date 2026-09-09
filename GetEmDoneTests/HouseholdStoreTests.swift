@@ -33,6 +33,46 @@ final class HouseholdStoreTests: XCTestCase {
         XCTAssertTrue(store.enforcement.appleTVPaused)
     }
 
+    func testAddingAndRemovingChoreRecordsHistory() {
+        let store = makeStore(states: [])
+        store.addChore(title: "  Tidy desk  ", detail: "Clear the top", evidence: .photo, activeWeekdays: [2, 4])
+        XCTAssertEqual(store.chores.first?.title, "Tidy desk")
+        XCTAssertEqual(store.chores.first?.activeWeekdays, [2, 4])
+        XCTAssertEqual(store.history.first?.kind, .choreCreated)
+
+        store.removeChores(at: IndexSet(integer: 0))
+        XCTAssertTrue(store.chores.isEmpty)
+        XCTAssertEqual(store.history.first?.kind, .choreRemoved)
+    }
+
+    func testSnapshotRoundTripsThroughPersistence() async throws {
+        let persistence = MemoryHouseholdPersistence()
+        let first = HouseholdStore(
+            role: .parent,
+            childName: "Avery",
+            chores: [Chore(title: "Read", detail: "Ten pages", evidence: .timer, state: .submitted)],
+            devices: [],
+            persistence: persistence
+        )
+        await first.persist()
+
+        let restored = HouseholdStore(role: .parent, childName: "Placeholder", chores: [], devices: [], persistence: persistence)
+        await restored.load()
+        XCTAssertEqual(restored.childName, "Avery")
+        XCTAssertEqual(restored.chores.first?.title, "Read")
+        XCTAssertEqual(restored.accessState, .awaitingApproval)
+    }
+
+    func testHistoryIsBoundedToOneHundredEvents() async {
+        let store = makeStore(states: [.submitted])
+        for _ in 0..<120 {
+            await store.approveSubmitted()
+            await store.resetDay()
+            store.submit(store.chores[0])
+        }
+        XCTAssertEqual(store.history.count, 100)
+    }
+
     private func makeStore(states: [ChoreState]) -> HouseholdStore {
         HouseholdStore(
             role: .parent,
@@ -44,4 +84,3 @@ final class HouseholdStoreTests: XCTestCase {
         )
     }
 }
-

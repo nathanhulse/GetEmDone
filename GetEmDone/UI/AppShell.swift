@@ -11,10 +11,12 @@ struct AppShell: View {
             NavigationStack { DevicesView(store: store) }
                 .tabItem { Label("Devices", systemImage: "wifi.router") }
 
+            NavigationStack { HistoryView(store: store) }
+                .tabItem { Label("History", systemImage: "clock.arrow.circlepath") }
+
             NavigationStack { SettingsView(store: store) }
                 .tabItem { Label("Settings", systemImage: "gearshape") }
         }
         .tint(GEDTheme.accent)
     }
 }
-

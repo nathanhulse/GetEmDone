@@ -1,6 +1,6 @@
 import Foundation
 
-enum HouseholdRole: String, CaseIterable, Identifiable, Codable {
+enum HouseholdRole: String, CaseIterable, Identifiable, Codable, Sendable {
     case parent
     case child
 
@@ -8,7 +8,7 @@ enum HouseholdRole: String, CaseIterable, Identifiable, Codable {
     var title: String { rawValue.capitalized }
 }
 
-enum ChoreEvidence: String, CaseIterable, Identifiable, Codable {
+enum ChoreEvidence: String, CaseIterable, Identifiable, Codable, Sendable {
     case checkIn
     case photo
     case timer
@@ -32,25 +32,27 @@ enum ChoreEvidence: String, CaseIterable, Identifiable, Codable {
     }
 }
 
-enum ChoreState: String, Codable {
+enum ChoreState: String, Codable, Sendable {
     case waiting
     case submitted
     case approved
 }
 
-struct Chore: Identifiable, Hashable, Codable {
+struct Chore: Identifiable, Hashable, Codable, Sendable {
     let id: UUID
     var title: String
     var detail: String
     var evidence: ChoreEvidence
     var state: ChoreState
+    var activeWeekdays: Set<Int>
 
-    init(id: UUID = UUID(), title: String, detail: String, evidence: ChoreEvidence, state: ChoreState = .waiting) {
+    init(id: UUID = UUID(), title: String, detail: String, evidence: ChoreEvidence, state: ChoreState = .waiting, activeWeekdays: Set<Int> = Set(1...7)) {
         self.id = id
         self.title = title
         self.detail = detail
         self.evidence = evidence
         self.state = state
+        self.activeWeekdays = activeWeekdays
     }
 }
 
@@ -68,8 +70,8 @@ enum AccessState: Equatable {
     }
 }
 
-struct ManagedDevice: Identifiable, Hashable {
-    enum Kind: String {
+struct ManagedDevice: Identifiable, Hashable, Codable, Sendable {
+    enum Kind: String, Codable, Sendable {
         case iPhone = "iPhone"
         case appleTV = "Apple TV"
     }
@@ -89,3 +91,33 @@ struct ManagedDevice: Identifiable, Hashable {
     }
 }
 
+struct ActivityEvent: Identifiable, Hashable, Codable, Sendable {
+    enum Kind: String, Codable, Sendable {
+        case submitted
+        case approved
+        case redoRequested
+        case override
+        case dailyReset
+        case choreCreated
+        case choreRemoved
+    }
+
+    let id: UUID
+    let date: Date
+    let kind: Kind
+    let message: String
+
+    init(id: UUID = UUID(), date: Date = .now, kind: Kind, message: String) {
+        self.id = id
+        self.date = date
+        self.kind = kind
+        self.message = message
+    }
+}
+
+struct HouseholdSnapshot: Codable, Sendable {
+    var childName: String
+    var chores: [Chore]
+    var devices: [ManagedDevice]
+    var history: [ActivityEvent]
+}

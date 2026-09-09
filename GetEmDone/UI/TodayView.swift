@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TodayView: View {
     @ObservedObject var store: HouseholdStore
+    @State private var sheet: TodaySheet?
 
     var body: some View {
         ScrollView {
@@ -15,7 +16,19 @@ struct TodayView: View {
         }
         .background(GEDTheme.canvas)
         .navigationTitle("Today")
-        .toolbar { roleMenu }
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Add", systemImage: "plus") { sheet = .newChore }
+                    .opacity(store.role == .parent ? 1 : 0)
+                    .disabled(store.role != .parent)
+            }
+            roleMenu
+        }
+        .sheet(item: $sheet) { destination in
+            switch destination {
+            case .newChore: AddChoreView(store: store)
+            }
+        }
         .alert("Something went wrong", isPresented: Binding(
             get: { store.errorMessage != nil },
             set: { if !$0 { store.errorMessage = nil } }
@@ -118,6 +131,64 @@ struct TodayView: View {
         case .awaitingApproval: "A parent can review the submitted items now."
         case .unlocked: "Apps, websites, and the Family Room TV are available."
         }
+    }
+}
+
+private enum TodaySheet: Identifiable {
+    case newChore
+    var id: Self { self }
+}
+
+private struct AddChoreView: View {
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject var store: HouseholdStore
+    @State private var title = ""
+    @State private var detail = ""
+    @State private var evidence: ChoreEvidence = .checkIn
+    @State private var activeWeekdays = Set(1...7)
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Responsibility") {
+                    TextField("Make your bed", text: $title)
+                    TextField("What counts as done?", text: $detail)
+                    Picker("Check-in", selection: $evidence) {
+                        ForEach(ChoreEvidence.allCases) { Label($0.title, systemImage: $0.symbol).tag($0) }
+                    }
+                }
+                Section("Repeats") {
+                    ForEach(Array(Calendar.current.shortWeekdaySymbols.enumerated()), id: \.offset) { index, day in
+                        Toggle(day, isOn: weekdayBinding(index + 1))
+                    }
+                }
+            }
+            .navigationTitle("New responsibility")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") {
+                        store.addChore(title: title, detail: detail, evidence: evidence, activeWeekdays: activeWeekdays)
+                        dismiss()
+                    }
+                    .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || activeWeekdays.isEmpty)
+                }
+            }
+        }
+    }
+
+    private func weekdayBinding(_ day: Int) -> Binding<Bool> {
+        Binding(
+            get: { activeWeekdays.contains(day) },
+            set: { enabled in
+                if enabled {
+                    activeWeekdays.insert(day)
+                } else {
+                    activeWeekdays.remove(day)
+                }
+            }
+        )
     }
 }
 
