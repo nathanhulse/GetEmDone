@@ -124,6 +124,27 @@ final class HouseholdStoreTests: XCTestCase {
         XCTAssertEqual(store.protectionHealth, .healthy)
     }
 
+    func testPersistenceRejectsOlderRevision() async {
+        let persistence = MemoryHouseholdPersistence()
+        let newer = HouseholdSnapshot(childName: "New", chores: [], devices: [], history: [])
+        let older = HouseholdSnapshot(childName: "Old", chores: [], devices: [], history: [])
+        await persistence.save(newer, revision: 2)
+        await persistence.save(older, revision: 1)
+        let loaded = await persistence.load()
+        XCTAssertEqual(loaded?.childName, "New")
+    }
+
+    func testLegacyChoreDecodingUsesSafeDefaults() throws {
+        let id = UUID()
+        let json = """
+        {"id":"\(id.uuidString)","title":"Legacy","detail":"","evidence":"checkIn","state":"waiting","activeWeekdays":[1,2,3,4,5,6,7]}
+        """
+        let chore = try JSONDecoder().decode(Chore.self, from: Data(json.utf8))
+        XCTAssertFalse(chore.isArchived)
+        XCTAssertEqual(chore.minimumTimerSeconds, 60)
+        XCTAssertEqual(chore.evidenceProgress, .none)
+    }
+
     func testWeekdayScheduleSelectsOnlyActiveChores() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!

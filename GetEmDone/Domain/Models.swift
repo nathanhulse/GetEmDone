@@ -90,6 +90,26 @@ struct Chore: Identifiable, Hashable, Codable, Sendable {
         }
     }
 
+    private enum CodingKeys: String, CodingKey {
+        case id, title, detail, evidence, state, activeWeekdays, dueMinutes, isArchived
+        case evidenceProgress, minimumTimerSeconds, parentNote
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(UUID.self, forKey: .id)
+        title = try values.decode(String.self, forKey: .title)
+        detail = try values.decodeIfPresent(String.self, forKey: .detail) ?? ""
+        evidence = try values.decode(ChoreEvidence.self, forKey: .evidence)
+        state = try values.decodeIfPresent(ChoreState.self, forKey: .state) ?? .waiting
+        activeWeekdays = try values.decodeIfPresent(Set<Int>.self, forKey: .activeWeekdays) ?? Set(1...7)
+        dueMinutes = try values.decodeIfPresent(Int.self, forKey: .dueMinutes)
+        isArchived = try values.decodeIfPresent(Bool.self, forKey: .isArchived) ?? false
+        evidenceProgress = try values.decodeIfPresent(EvidenceProgress.self, forKey: .evidenceProgress) ?? .none
+        minimumTimerSeconds = try values.decodeIfPresent(Int.self, forKey: .minimumTimerSeconds) ?? 60
+        parentNote = try values.decodeIfPresent(String.self, forKey: .parentNote)
+    }
+
     var recurrenceLabel: String {
         if activeWeekdays == Set(1...7) { return "Every day" }
         if activeWeekdays == Set(2...6) { return "Weekdays" }
@@ -191,6 +211,7 @@ struct ActivityEvent: Identifiable, Hashable, Codable, Sendable {
 }
 
 struct HouseholdSnapshot: Codable, Sendable {
+    var schemaVersion: Int = 1
     var childName: String
     var chores: [Chore]
     var devices: [ManagedDevice]

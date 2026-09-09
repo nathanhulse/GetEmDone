@@ -17,6 +17,7 @@ final class HouseholdStore: ObservableObject {
 
     private let enforcementService: any EnforcementService
     private let persistence: any HouseholdPersistence
+    private var persistenceRevision: UInt64 = 0
 
     init(
         role: HouseholdRole,
@@ -181,8 +182,11 @@ final class HouseholdStore: ObservableObject {
     }
 
     func persist() async {
+        persistenceRevision &+= 1
+        let revision = persistenceRevision
+        let value = snapshot
         do {
-            try await persistence.save(snapshot)
+            try await persistence.save(value, revision: revision)
         } catch {
             errorMessage = "Changes are visible now but couldn’t be saved."
         }
