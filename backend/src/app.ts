@@ -1,7 +1,7 @@
 import Fastify from "fastify";
 import { Actor, DomainError, HouseholdRepository } from "./domain.js";
 import { SQLiteHouseholdRepository } from "./sqlite-repository.js";
-import { EncryptedEvidenceVault, MemoryPrivateObjectStore } from "./evidence.js";
+import { EncryptedEvidenceVault, FilesystemPrivateObjectStore, MemoryPrivateObjectStore, SQLiteEvidenceMetadataRepository } from "./evidence.js";
 import { jwtAuthenticatorFromEnvironment, type ActorAuthenticator } from "./auth.js";
 
 export function buildApp(
@@ -71,6 +71,19 @@ export function buildApp(
   return { app, repository, evidenceVault };
 }
 
+export function buildProductionApp(environment: NodeJS.ProcessEnv = process.env) {
+  const databasePath = requiredEnvironment(environment, "DATABASE_PATH");
+  const objectRoot = requiredEnvironment(environment, "EVIDENCE_OBJECT_ROOT");
+  const encodedKey = requiredEnvironment(environment, "EVIDENCE_ENCRYPTION_KEY_BASE64");
+  const key = Buffer.from(encodedKey, "base64");
+  if (key.byteLength !== 32) throw new Error("EVIDENCE_ENCRYPTION_KEY_BASE64 must decode to 32 bytes");
+  const metadataPath = environment.EVIDENCE_METADATA_DATABASE_PATH ?? databasePath;
+  const repository = new SQLiteHouseholdRepository(databasePath);
+  const metadata = new SQLiteEvidenceMetadataRepository(metadataPath);
+  const vault = new EncryptedEvidenceVault(new FilesystemPrivateObjectStore(objectRoot), key, 5 * 1024 * 1024, metadata);
+  return buildApp(repository, vault, jwtAuthenticatorFromEnvironment(environment));
+}
+
 function evidenceKey(): Uint8Array {
   const encoded = process.env.EVIDENCE_ENCRYPTION_KEY_BASE64;
   if (!encoded) return Buffer.alloc(32, 0); // Development only; production startup validates its secret externally.
@@ -81,6 +94,12 @@ function evidenceKey(): Uint8Array {
 
 function header(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function requiredEnvironment(environment: NodeJS.ProcessEnv, name: string): string {
+  const value = environment[name];
+  if (!value) throw new Error(`${name} is required`);
+  return value;
 }
 
 declare module "fastify" {
