@@ -8,6 +8,12 @@ struct GetEmDoneApp: App {
         WindowGroup {
             AppShell(store: store)
                 .task { await store.load() }
+                .fullScreenCover(isPresented: Binding(
+                    get: { !store.hasCompletedOnboarding },
+                    set: { _ in }
+                )) {
+                    OnboardingView(store: store)
+                }
         }
     }
 }

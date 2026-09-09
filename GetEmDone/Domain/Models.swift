@@ -107,6 +107,29 @@ enum OverrideTarget: String, CaseIterable, Identifiable, Sendable {
     var title: String { self == .appleTV ? "Apple TV" : rawValue.capitalized }
 }
 
+enum OnboardingStep: Int, CaseIterable, Sendable {
+    case welcome
+    case child
+    case protection
+    case review
+}
+
+enum ProtectionHealth: Equatable, Sendable {
+    case unknown
+    case applying
+    case healthy
+    case degraded(message: String)
+
+    var title: String {
+        switch self {
+        case .unknown: "Not checked"
+        case .applying: "Updating protection"
+        case .healthy: "Protection confirmed"
+        case .degraded: "Needs attention"
+        }
+    }
+}
+
 enum AccessState: Equatable {
     case locked
     case awaitingApproval

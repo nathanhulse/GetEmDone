@@ -98,6 +98,8 @@ struct TodayView: View {
             }
             ProgressView(value: store.progress)
                 .tint(accessTint)
+                .accessibilityLabel("Today’s progress")
+                .accessibilityValue("\(store.completedCount) of \(store.todaysChores.count) responsibilities")
         }
         .padding(18)
         .background(.background, in: RoundedRectangle(cornerRadius: 22, style: .continuous))

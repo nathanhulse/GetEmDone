@@ -6,6 +6,21 @@ struct DevicesView: View {
     var body: some View {
         List {
             Section {
+                HStack {
+                    Image(systemName: healthSymbol).foregroundStyle(healthTint)
+                    VStack(alignment: .leading) {
+                        Text(store.protectionHealth.title).font(.headline)
+                        if case .degraded(let message) = store.protectionHealth {
+                            Text(message).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer()
+                    if store.protectionHealth == .applying { ProgressView() }
+                }
+                Button("Check protection now") { Task { await store.reconcilePolicy() } }
+            } header: { Text("Protection health") }
+
+            Section {
                 ForEach(store.devices) { device in
                     DeviceRow(device: device, enforcement: store.enforcement)
                 }
@@ -27,6 +42,24 @@ struct DevicesView: View {
             }
         }
         .navigationTitle("Devices")
+    }
+
+    private var healthSymbol: String {
+        switch store.protectionHealth {
+        case .unknown: "questionmark.circle"
+        case .applying: "arrow.triangle.2.circlepath"
+        case .healthy: "checkmark.shield.fill"
+        case .degraded: "exclamationmark.triangle.fill"
+        }
+    }
+
+    private var healthTint: Color {
+        switch store.protectionHealth {
+        case .healthy: GEDTheme.mint
+        case .degraded: .red
+        case .applying: GEDTheme.warm
+        case .unknown: .secondary
+        }
     }
 }
 

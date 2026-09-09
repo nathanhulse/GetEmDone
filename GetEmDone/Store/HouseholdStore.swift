@@ -11,6 +11,9 @@ final class HouseholdStore: ObservableObject {
     @Published var enforcement: EnforcementSnapshot
     @Published var isApplyingPolicy = false
     @Published var errorMessage: String?
+    @Published var protectionHealth: ProtectionHealth = .unknown
+    @Published var onboardingStep: OnboardingStep = .welcome
+    @Published var hasCompletedOnboarding: Bool
 
     private let enforcementService: any EnforcementService
     private let persistence: any HouseholdPersistence
@@ -31,6 +34,7 @@ final class HouseholdStore: ObservableObject {
         self.history = history
         self.enforcementService = enforcementService
         self.persistence = persistence
+        self.hasCompletedOnboarding = role == .parent && !chores.isEmpty
         self.enforcement = .init(phoneAppsShielded: true, webDistractionsFiltered: true, appleTVPaused: true)
     }
 
@@ -186,6 +190,7 @@ final class HouseholdStore: ObservableObject {
 
     func reconcilePolicy() async {
         isApplyingPolicy = true
+        protectionHealth = .applying
         defer { isApplyingPolicy = false }
         do {
             if case .unlocked = accessState {
@@ -193,9 +198,23 @@ final class HouseholdStore: ObservableObject {
             } else {
                 enforcement = try await enforcementService.applyLockedPolicy()
             }
+            protectionHealth = .healthy
         } catch {
             errorMessage = "We couldn’t update every device. Essential apps remain available; try again."
+            protectionHealth = .degraded(message: "One or more protection layers could not be confirmed.")
         }
+    }
+
+    func advanceOnboarding() {
+        guard let next = OnboardingStep(rawValue: onboardingStep.rawValue + 1) else {
+            hasCompletedOnboarding = true
+            return
+        }
+        onboardingStep = next
+    }
+
+    func goBackOnboarding() {
+        onboardingStep = OnboardingStep(rawValue: max(0, onboardingStep.rawValue - 1)) ?? .welcome
     }
 
     private func update(_ id: UUID, mutation: (inout Chore) -> Void) {
@@ -236,12 +255,14 @@ extension HouseholdStore {
 
     static var live: HouseholdStore {
         let fixture = preview
-        return HouseholdStore(
+        let store = HouseholdStore(
             role: fixture.role,
             childName: fixture.childName,
             chores: fixture.chores,
             devices: fixture.devices,
             persistence: LocalHouseholdPersistence()
         )
+        store.hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "onboardingComplete")
+        return store
     }
 }

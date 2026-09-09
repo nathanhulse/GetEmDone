@@ -104,6 +104,26 @@ final class HouseholdStoreTests: XCTestCase {
         XCTAssertEqual(store.chores[0].parentNote, "Please straighten the blanket")
     }
 
+    func testOnboardingMovesForwardBackAndCompletes() {
+        let store = makeStore(states: [])
+        store.hasCompletedOnboarding = false
+        XCTAssertEqual(store.onboardingStep, .welcome)
+        store.advanceOnboarding()
+        store.advanceOnboarding()
+        store.goBackOnboarding()
+        XCTAssertEqual(store.onboardingStep, .child)
+        store.advanceOnboarding()
+        store.advanceOnboarding()
+        store.advanceOnboarding()
+        XCTAssertTrue(store.hasCompletedOnboarding)
+    }
+
+    func testSuccessfulReconciliationConfirmsProtectionHealth() async {
+        let store = makeStore(states: [.waiting])
+        await store.reconcilePolicy()
+        XCTAssertEqual(store.protectionHealth, .healthy)
+    }
+
     func testWeekdayScheduleSelectsOnlyActiveChores() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!

@@ -59,12 +59,14 @@ struct StatusPill: View {
 }
 
 struct PrimaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.headline)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 15)
             .foregroundStyle(.white)
-            .background(GEDTheme.accent.opacity(configuration.isPressed ? 0.75 : 1), in: RoundedRectangle(cornerRadius: 16))
+            .background(GEDTheme.accent.opacity(!isEnabled ? 0.35 : (configuration.isPressed ? 0.75 : 1)), in: RoundedRectangle(cornerRadius: 16))
     }
 }
